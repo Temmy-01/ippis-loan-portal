@@ -1,0 +1,63 @@
+@import 'tailwindcss';
+@import './animations.css';
+
+@theme {
+  --color-lms-dark-purple: #431967;
+  --color-lms-purple: #7c2ebf;
+  --color-lms-lilac: #c87dfe;
+  --color-lms-blue: #cdebf8;
+  --color-lms-teal: #144c44;
+
+  --color-ink: #202020;
+  --color-ink-soft: #47464a;
+  --color-ink-muted: #84818a;
+  --color-ink-icon: #292d32;
+  --color-ink-navy: #0d172a;
+  --color-slate: #667085;
+  --color-indigo: #4d3ea3;
+  --color-line: #dcdbdd;
+  --color-lavender: rgb(230 230 250 / 0.4);
+  --color-danger: #e5484d;
+
+  --color-app-bg: #f8f7fa;
+  --color-app-line: #e8e5eb;
+  --color-app-ink: #25222a;
+  --color-app-muted: #6f6a75;
+  --color-nav: #324054;
+  --color-lilac-soft: #f5eafd;
+  --color-sky-soft: #eff9fd;
+  --color-sky-ink: #286b8a;
+  --color-amber-soft: #fff6e8;
+  --color-amber: #a75b13;
+  --color-track: #eeeaf1;
+  --color-cam-frame: #231f27;
+  --color-cam-screen: #322d35;
+  --color-cam-muted: #beb7c2;
+  --color-success: #47d19b;
+  --color-periwinkle: #758ad1;
+  --color-field: #fafbfe;
+  --color-field-ink: #344054;
+
+  --font-poppins: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-inter: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-urbanist: 'Urbanist', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-lms-dark-purple font-poppins text-ink;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #fff inset;
+    -webkit-text-fill-color: var(--color-ink);
+    transition: background-color 9999s ease-out;
+  }
+}
