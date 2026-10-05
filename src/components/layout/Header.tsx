@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { LuLock, LuLogOut, LuUser } from 'react-icons/lu'
+import { Link, useNavigate } from 'react-router-dom'
 
 import iconBell from '@/assets/app/icon-bell.svg'
 import iconChevronDown from '@/assets/app/icon-chevron-down.svg'
-import { fullName, initials, mockUser } from '@/data/mockUser'
+import { fullName, initials } from '@/data/mockUser'
+import { useNotifications } from '@/features/notifications/store'
 import { cn } from '@/lib/cn'
 
 type HeaderProps = {
   leading?: ReactNode
   onOpenMenu: () => void
-  onChangePassword: () => void
   onLogout: () => void
 }
 
-export function Header({ leading, onOpenMenu, onChangePassword, onLogout }: HeaderProps) {
+export function Header({ leading, onOpenMenu, onLogout }: HeaderProps) {
+  const navigate = useNavigate()
+  const unread = useNotifications().filter((n) => !n.read).length
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -29,6 +33,12 @@ export function Header({ leading, onOpenMenu, onChangePassword, onLogout }: Head
       document.removeEventListener('keydown', onKey)
     }
   }, [menuOpen])
+
+  const menuItems = [
+    { label: 'My Profile', icon: LuUser, action: () => navigate('/profile') },
+    { label: 'Security', icon: LuLock, action: () => navigate('/profile?tab=security') },
+    { label: 'Log Out', icon: LuLogOut, action: onLogout },
+  ]
 
   return (
     <header className="sticky top-0 z-20 flex h-[82px] items-center justify-between gap-4 border-b border-app-line bg-white/95 px-4 backdrop-blur sm:px-8 xl:px-[57.6px]">
@@ -49,18 +59,18 @@ export function Header({ leading, onOpenMenu, onChangePassword, onLogout }: Head
       </div>
 
       <div className="flex items-center gap-[14px]">
-        <button
-          type="button"
-          aria-label={`Notifications, ${mockUser.notifications} unread`}
+        <Link
+          to="/notifications"
+          aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
           className="group relative flex size-11 items-center justify-center rounded-[22px] border border-app-line bg-white transition-colors hover:border-lms-lilac"
         >
           <img src={iconBell} alt="" className="block size-5 origin-top group-hover:animate-[wiggle_0.5s_ease-in-out]" />
-          {mockUser.notifications > 0 && (
-            <span className="absolute -top-[3px] -right-[2px] flex size-[18px] items-center justify-center rounded-[9px] bg-lms-purple font-inter text-[10px] leading-[15.5px] text-white">
-              {mockUser.notifications}
+          {unread > 0 && (
+            <span className="anim-pop absolute -top-[3px] -right-[2px] flex size-[18px] items-center justify-center rounded-[9px] bg-lms-purple font-inter text-[10px] leading-[15.5px] text-white">
+              {unread}
             </span>
           )}
-        </button>
+        </Link>
 
         <div ref={menuRef} className="relative">
           <button
@@ -74,38 +84,30 @@ export function Header({ leading, onOpenMenu, onChangePassword, onLogout }: Head
               {initials}
             </span>
             <span className="hidden font-inter text-[16px] leading-[24.8px] text-app-ink sm:inline">{fullName}</span>
-            <img
-              src={iconChevronDown}
-              alt=""
-              className={cn('block size-4 transition-transform duration-200', menuOpen && 'rotate-180')}
-            />
+            <img src={iconChevronDown} alt="" className={cn('block size-4 transition-transform duration-200', menuOpen && 'rotate-180')} />
           </button>
 
           {menuOpen && (
             <div
               role="menu"
-              className="anim-scale-in absolute top-[calc(100%+8px)] right-0 w-52 overflow-hidden rounded-[12px] border border-app-line bg-white py-1.5 shadow-[0_12px_38px_0_rgb(52_34_67/0.12)]"
+              className="anim-scale-in absolute top-[calc(100%+8px)] right-0 w-[198px] overflow-hidden rounded-[12px] border border-app-line bg-white p-2 shadow-[0_12px_38px_0_rgb(52_34_67/0.12)]"
               style={{ animationDuration: '0.2s' }}
             >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setMenuOpen(false)
-                  onChangePassword()
-                }}
-                className="block w-full px-4 py-2.5 text-left font-inter text-[14px] text-app-ink hover:bg-app-bg"
-              >
-                Change password
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={onLogout}
-                className="block w-full px-4 py-2.5 text-left font-inter text-[14px] text-app-ink hover:bg-app-bg"
-              >
-                Log out
-              </button>
+              {menuItems.map(({ label, icon: Icon, action }) => (
+                <button
+                  key={label}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    action()
+                  }}
+                  className="flex h-11 w-full items-center gap-3 rounded-[8px] px-3 text-left font-inter text-[16px] text-app-ink transition-colors hover:bg-app-bg"
+                >
+                  <Icon className="size-[18px] shrink-0 text-[#413e44]" />
+                  {label}
+                </button>
+              ))}
             </div>
           )}
         </div>

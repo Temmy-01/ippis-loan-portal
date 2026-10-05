@@ -16,7 +16,7 @@ const formatTime = (seconds: number) =>
 export default function VerifyOtp() {
   const navigate = useNavigate()
   const location = useLocation()
-  const email = (location.state as { email?: string } | null)?.email
+  const { email, returnTo } = (location.state as { email?: string; returnTo?: string } | null) ?? {}
   const maskedEmail = email ? maskEmail(email) : 'a••••@email.com'
 
   const [code, setCode] = useState('')
@@ -48,7 +48,7 @@ export default function VerifyOtp() {
     // TODO: call the verify-code endpoint.
     await new Promise((resolve) => setTimeout(resolve, 900))
     setSubmitting(false)
-    navigate('/login')
+    navigate(returnTo ?? '/login')
   }
 
   return (

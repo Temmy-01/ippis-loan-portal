@@ -2,7 +2,9 @@
 export const mockUser = {
   firstName: 'Joy',
   lastName: 'Oyeledun',
-  notifications: 3,
+  email: 'joy@example.com',
+  phone: '08012345678',
+  customerSince: '15 June 2025',
 }
 
 export const mockApplication = {
@@ -15,6 +17,8 @@ export const mockApplication = {
   amount: '750000',
   dateStarted: '15 June 2025',
   lastUpdated: '18 June 2025',
+  dateSubmitted: '18 June 2025',
+  statusUpdated: '20 June 2025',
 }
 
 export const mockHistory = [

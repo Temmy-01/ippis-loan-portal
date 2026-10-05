@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: navDashboard, iconClassName: 'left-[14px] size-6' },
   { to: '/applications', label: 'My Applications', icon: navApplications, iconClassName: 'left-[14px] size-[19px]' },
   { to: '/history', label: 'Application History', icon: navHistory, iconClassName: 'left-[14px] size-[19px]' },
-  { to: '/settings', label: 'Settings', icon: navSettings, iconClassName: 'left-[16px] size-[14.5px]' },
+  { to: '/profile', label: 'Settings', icon: navSettings, iconClassName: 'left-[16px] size-[14.5px]' },
 ]
 
 type SidebarProps = {

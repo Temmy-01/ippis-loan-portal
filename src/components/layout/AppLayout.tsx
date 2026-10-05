@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
-import { ChangePasswordModal } from '@/components/app/ChangePasswordModal'
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { mockUser } from '@/data/mockUser'
 import { cn } from '@/lib/cn'
 
-const GREETING_ROUTES = ['/verify-identity']
+const GREETING_ROUTES = ['/verify-identity', '/notifications']
 
 export function AppLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [passwordOpen, setPasswordOpen] = useState(false)
 
   useEffect(() => {
     document.body.style.backgroundColor = '#f8f7fa'
@@ -53,7 +51,6 @@ export function AppLayout() {
             ) : undefined
           }
           onOpenMenu={() => setDrawerOpen(true)}
-          onChangePassword={() => setPasswordOpen(true)}
           onLogout={logout}
         />
         <main key={pathname} className="w-full max-w-[1280px] px-4 pt-8 pb-20 sm:px-8 sm:pt-12 xl:px-[57.6px]">
@@ -61,7 +58,6 @@ export function AppLayout() {
         </main>
       </div>
 
-      <ChangePasswordModal open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </div>
   )
 }
