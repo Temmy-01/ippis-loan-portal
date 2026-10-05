@@ -76,7 +76,7 @@ export function TextField({
             inputProps.onBlur?.(event)
           }}
           className={cn(
-            'absolute top-[calc(50%-4px)] left-0 h-[21px] w-full bg-transparent font-poppins text-[14px] leading-[21px] font-medium text-ink outline-none',
+            'absolute top-[calc(50%-4px)] left-0 h-[21px] w-full bg-transparent font-poppins text-[14px] leading-[21px] pointer-coarse:text-[16px] font-medium text-ink outline-none',
             'placeholder:text-ink',
             isPassword && 'pr-8',
             !raised && 'opacity-0',

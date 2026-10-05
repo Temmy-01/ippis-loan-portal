@@ -48,7 +48,7 @@ function PasswordBox({
           autoComplete={autoComplete}
           placeholder="*********"
           onChange={(event) => onChange(event.target.value)}
-          className="h-full w-full bg-transparent pr-14 pl-[24.5px] font-inter text-[14px] leading-[22px] tracking-[0.056px] text-field-ink outline-none placeholder:text-field-ink"
+          className="h-full w-full bg-transparent pr-14 pl-[24.5px] font-inter text-[14px] leading-[22px] pointer-coarse:text-[16px] tracking-[0.056px] text-field-ink outline-none placeholder:text-field-ink"
         />
         <button
           type="button"
