@@ -11,6 +11,7 @@ import MyApplications from '@/pages/app/MyApplications'
 import VerifyIdentity from '@/pages/app/VerifyIdentity'
 import ApplyStep from '@/pages/apply/ApplyStep'
 import GetStarted from '@/pages/apply/GetStarted'
+import LoanPackages from '@/pages/apply/LoanPackages'
 import Submitted from '@/pages/apply/Submitted'
 import Login from '@/pages/auth/Login'
 import SignUp from '@/pages/auth/SignUp'
@@ -29,6 +30,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/verify-identity" element={<VerifyIdentity />} />
+          <Route path="/loan-packages" element={<LoanPackages />} />
           <Route path="/apply" element={<GetStarted />} />
           <Route path="/application-submitted" element={<Submitted />} />
           <Route path="/track" element={<TrackApplication />} />

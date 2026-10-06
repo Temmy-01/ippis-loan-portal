@@ -36,7 +36,7 @@ export function Header({ leading, onOpenMenu, onLogout }: HeaderProps) {
 
   const menuItems = [
     { label: 'My Profile', icon: LuUser, action: () => navigate('/profile') },
-    { label: 'Security', icon: LuLock, action: () => navigate('/profile?tab=security') },
+    { label: 'Password', icon: LuLock, action: () => navigate('/profile?tab=security') },
     { label: 'Log Out', icon: LuLogOut, action: onLogout },
   ]
 

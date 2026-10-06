@@ -9,91 +9,135 @@ import illusDocument from '@/assets/app/illus-document.svg'
 import { PageHeader } from '@/components/app/PageHeader'
 import { PrototypeFlows } from '@/components/app/PrototypeFlows'
 import { mockApplication, mockUser } from '@/data/mockUser'
+import { useApplication } from '@/features/application/ApplicationContext'
+import { getProgress } from '@/features/application/progress'
 import { cn } from '@/lib/cn'
-
-const JOURNEY = [
-  { title: 'Complete your details', body: 'Your personal and employment information', done: true },
-  { title: 'Submit your application', body: 'Review your information before sending', done: false },
-  { title: 'Track your progress', body: 'See updates and actions in one place', done: false },
-]
+import { formatDateTime } from '@/lib/format'
 
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
+const PRIMARY_LINK =
+  'group flex min-h-[50px] items-center justify-center gap-2 rounded-[10px] bg-lms-purple px-[23px] py-3 font-inter text-[16px] leading-[24.8px] font-bold text-white shadow-[0_6px_7px_0_rgb(124_46_191/0.16)] transition-all duration-200 hover:-translate-y-px hover:bg-[#6c25a9] hover:shadow-[0_10px_20px_-6px_rgb(124_46_191/0.5)]'
+const SECONDARY_LINK =
+  'flex min-h-[50px] items-center justify-center rounded-[10px] px-[11px] font-inter text-[16px] leading-[24.8px] font-bold text-lms-purple transition-colors hover:bg-lilac-soft'
+
+function Pill({ tone, children }: { tone: 'amber' | 'sky'; children: string }) {
+  return (
+    <span
+      className={cn(
+        'flex min-h-7 items-center gap-[7px] self-start rounded-[20px] px-2.5 py-1',
+        tone === 'amber' ? 'bg-amber-soft text-amber' : 'bg-sky-soft text-sky-ink',
+      )}
+    >
+      <span className={cn('size-[7px] animate-pulse rounded-full', tone === 'amber' ? 'bg-amber' : 'bg-sky-ink')} />
+      <span className="font-inter text-[12px] leading-[18.6px] font-bold">{children}</span>
+    </span>
+  )
+}
+
 export default function Dashboard() {
-  const { id, completedSteps, totalSteps, lastSaved, nextStep } = mockApplication
-  const progress = Math.round((completedSteps / totalSteps) * 100)
+  const { data } = useApplication()
+  const progress = getProgress(data)
+
+  const journey = [
+    { title: 'Complete your details', body: 'Your personal and employment information', done: progress.detailsComplete },
+    { title: 'Submit your application', body: 'Review your information before sending', done: progress.submitted },
+    { title: 'Track your progress', body: 'See updates and actions in one place', done: false },
+  ]
+
+  const details = progress.submitted
+    ? [
+        ['Application ID', mockApplication.id],
+        ['Submitted', data.submittedAt ? formatDateTime(data.submittedAt) : ''],
+        ['Status', 'Under review'],
+      ]
+    : [
+        ['Application ID', mockApplication.id],
+        ['Last saved', data.updatedAt ? formatDateTime(data.updatedAt) : 'Not saved yet'],
+        ['Next step', progress.nextStepLabel],
+      ]
 
   return (
     <div className="flex flex-col gap-[18px]">
       <PageHeader
         eyebrow="Customer Dashboard"
         title={`Welcome back, ${mockUser.firstName.toUpperCase()}`}
-        description="Here's the latest on your IPPIS Loan Application."
+        description={
+          progress.started
+            ? "Here's the latest on your IPPIS Loan Application."
+            : 'Start your IPPIS loan application whenever you\'re ready.'
+        }
       />
 
       <section
         className="anim-fade-up relative flex overflow-hidden rounded-[22px] border border-app-line bg-white px-5 pt-8 pb-7 shadow-[0_10px_30px_0_rgb(60_36_77/0.05)] sm:px-[37px] sm:pt-[51px] sm:pb-[37px]"
         style={delay(100)}
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
-          <span className="flex min-h-7 items-center gap-[7px] self-start rounded-[20px] bg-amber-soft px-2.5 py-1">
-            <span className="size-[7px] animate-pulse rounded-full bg-amber" />
-            <span className="font-inter text-[12px] leading-[18.6px] font-bold text-amber">Action Required</span>
-          </span>
-          <h2 className="pt-[6.25px] font-inter text-[22px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink sm:text-[24px]">
-            Continue your application
-          </h2>
-          <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">
-            You've completed {completedSteps} of {totalSteps} steps. Your details are saved and waiting for you.
-          </p>
-
-          <div className="flex items-start justify-between pt-[19px] font-inter text-[14px] leading-[21.7px] text-app-ink">
-            <span>Application progress</span>
-            <strong className="font-bold">{progress}%</strong>
-          </div>
-          <div
-            className="h-2 overflow-hidden rounded-[8px] bg-track"
-            role="progressbar"
-            aria-valuenow={progress}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label="Application progress"
-          >
-            <div className="anim-grow-x h-full rounded-[8px] bg-lms-purple" style={{ width: `${progress}%` }} />
-          </div>
-
-          <dl className="grid grid-cols-1 gap-[18px] pt-[17px] sm:grid-cols-3">
-            {[
-              ['Application ID', id],
-              ['Last saved', lastSaved],
-              ['Next step', nextStep],
-            ].map(([label, value]) => (
-              <div key={label} className="flex flex-col gap-1">
-                <dt className="font-inter text-[12px] leading-[18.6px] text-app-muted">{label}</dt>
-                <dd className="font-inter text-[16px] leading-[24.8px] font-bold text-app-ink">{value}</dd>
+        <div className={cn('flex min-w-0 flex-1 flex-col gap-[7px]', !progress.started && 'md:justify-center md:pb-6')}>
+          {!progress.started ? (
+            <>
+              <Pill tone="sky">No application yet</Pill>
+              <h2 className="pt-[6.25px] font-inter text-[22px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink sm:text-[24px]">
+                Apply for a loan
+              </h2>
+              <p className="max-w-[520px] font-inter text-[16px] leading-[24.8px] text-app-muted">
+                You haven't started a loan application yet. It only takes a few guided steps, and your progress is
+                saved as you go.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-[19px]">
+                <Link to="/loan-packages" className={PRIMARY_LINK}>
+                  Apply for Loan
+                  <img src={iconChevronRight} alt="" className="block size-5 transition-transform duration-200 group-hover:translate-x-1" />
+                </Link>
               </div>
-            ))}
-          </dl>
+            </>
+          ) : (
+            <>
+              {progress.submitted ? <Pill tone="sky">Submitted</Pill> : <Pill tone="amber">Action Required</Pill>}
+              <h2 className="pt-[6.25px] font-inter text-[22px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink sm:text-[24px]">
+                {progress.submitted ? 'Your application has been submitted' : 'Continue your application'}
+              </h2>
+              <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">
+                {progress.submitted
+                  ? 'Our loan team is reviewing your application. We\'ll let you know if anything else is needed.'
+                  : `You've completed ${progress.completedSteps} of ${progress.totalSteps} steps. Your details are saved and waiting for you.`}
+              </p>
 
-          <div className="flex flex-wrap items-center gap-3 pt-[19px]">
-            <Link
-              to="/apply/documents"
-              className="group flex min-h-[50px] items-center justify-center gap-2 rounded-[10px] bg-lms-purple px-[23px] py-3 font-inter text-[16px] leading-[24.8px] font-bold text-white shadow-[0_6px_7px_0_rgb(124_46_191/0.16)] transition-all duration-200 hover:-translate-y-px hover:bg-[#6c25a9] hover:shadow-[0_10px_20px_-6px_rgb(124_46_191/0.5)]"
-            >
-              Continue Where You Left Off
-              <img
-                src={iconChevronRight}
-                alt=""
-                className="block size-5 transition-transform duration-200 group-hover:translate-x-1"
-              />
-            </Link>
-            <Link
-              to="/applications"
-              className="flex min-h-[50px] items-center justify-center rounded-[10px] px-[11px] font-inter text-[16px] leading-[24.8px] font-bold text-lms-purple transition-colors hover:bg-lilac-soft"
-            >
-              View Details
-            </Link>
-          </div>
+              <div className="flex items-start justify-between pt-[19px] font-inter text-[14px] leading-[21.7px] text-app-ink">
+                <span>Application progress</span>
+                <strong className="font-bold">{progress.percent}%</strong>
+              </div>
+              <div
+                className="h-2 overflow-hidden rounded-[8px] bg-track"
+                role="progressbar"
+                aria-valuenow={progress.percent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Application progress"
+              >
+                <div className="anim-grow-x h-full rounded-[8px] bg-lms-purple" style={{ width: `${progress.percent}%` }} />
+              </div>
+
+              <dl className="grid grid-cols-1 gap-[18px] pt-[17px] sm:grid-cols-3">
+                {details.map(([label, value]) => (
+                  <div key={label} className="flex flex-col gap-1">
+                    <dt className="font-inter text-[12px] leading-[18.6px] text-app-muted">{label}</dt>
+                    <dd className="font-inter text-[16px] leading-[24.8px] font-bold text-app-ink">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <div className="flex flex-wrap items-center gap-3 pt-[19px]">
+                <Link to={progress.nextStepPath} className={PRIMARY_LINK}>
+                  {progress.submitted ? 'Track My Application' : 'Continue Where You Left Off'}
+                  <img src={iconChevronRight} alt="" className="block size-5 transition-transform duration-200 group-hover:translate-x-1" />
+                </Link>
+                <Link to="/applications" className={SECONDARY_LINK}>
+                  View Details
+                </Link>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="relative hidden h-[316.58px] w-[240px] shrink-0 md:block">
@@ -104,9 +148,11 @@ export default function Dashboard() {
                 <img src={illusDocument} alt="" className="block h-[45.993px] w-[46.003px]" />
                 <div className="h-[5px] w-[65px] rounded-[5px] bg-app-line" />
                 <div className="h-[5px] w-11 rounded-[5px] bg-app-line" />
-                <div className="absolute -right-3 -bottom-3 flex size-[34px] items-center justify-center rounded-[17px] bg-lms-purple">
-                  <img src={iconCheckWhite} alt="" className="block h-[19.997px] w-[20.008px]" />
-                </div>
+                {progress.started && (
+                  <div className="anim-pop absolute -right-3 -bottom-3 flex size-[34px] items-center justify-center rounded-[17px] bg-lms-purple">
+                    <img src={iconCheckWhite} alt="" className="block h-[19.997px] w-[20.008px]" />
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -129,7 +175,7 @@ export default function Dashboard() {
       </div>
 
       <ol className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {JOURNEY.map((step, index) => (
+        {journey.map((step, index) => (
           <li
             key={step.title}
             className="anim-fade-up flex items-start gap-[14px] rounded-[14px] border border-app-line bg-white p-[23px] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_0_rgb(60_36_77/0.06)]"

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Logo } from '@/components/ui/Logo'
 import { TextField } from '@/components/ui/TextField'
-import { isEmail, isPhone } from '@/lib/validators'
+import { isEmail, isPhone, toPhoneDigits } from '@/lib/validators'
 
 const FEATURES = [
   {
@@ -63,7 +63,7 @@ export default function SignUp() {
     const nextErrors: Errors = {}
     if (form.fullName.trim().split(/\s+/).length < 2) nextErrors.fullName = 'Enter your first and last name'
     if (!isEmail(form.email)) nextErrors.email = 'Enter a valid email address'
-    if (!isPhone(form.phone)) nextErrors.phone = 'Enter a valid phone number, e.g. 08012345678'
+    if (!isPhone(form.phone)) nextErrors.phone = 'Enter an 11-digit phone number, e.g. 08012345678'
     if (form.password.length < 8) nextErrors.password = 'Use at least 8 characters'
     if (form.confirmPassword !== form.password) nextErrors.confirmPassword = 'Passwords do not match'
     if (!agreed) nextErrors.terms = 'Please accept the terms to continue'
@@ -176,9 +176,10 @@ export default function SignUp() {
                   type="tel"
                   name="phone"
                   autoComplete="tel"
-                  inputMode="tel"
+                  inputMode="numeric"
+                  maxLength={11}
                   value={form.phone}
-                  onChange={update('phone')}
+                  onChange={(value) => update('phone')(toPhoneDigits(value))}
                   error={errors.phone}
                   heightClassName="h-[49px]"
                 />

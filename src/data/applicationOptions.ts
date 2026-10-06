@@ -8,29 +8,24 @@ export const NIGERIAN_STATES = [
   'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
 ]
 
-export const INSTITUTIONS = [
-  'Federal Government Institution',
-  'Federal Civil Service Commission',
-  'Federal Medical Centre',
-  'Federal University',
-  'Federal Polytechnic',
+export const EMPLOYERS = [
+  'Nigeria Immigration Service',
+  'Nigeria Security and Civil Defence Corps',
+  'Nigeria Customs Service',
+  'Nigerian Correctional Service',
   'Nigeria Police Force',
+  'Federal Road Safety Corps',
 ]
-
-export const MDAS = [
-  'Federal Ministry of Education',
-  'Federal Ministry of Finance, Budget and National Planning',
-  'Federal Ministry of Health and Social Welfare',
-  'Federal Ministry of Interior',
-  'Federal Ministry of Justice',
-  'Federal Ministry of Works',
-  'Office of the Head of the Civil Service of the Federation',
-]
-
-export const EMPLOYMENT_STATUSES = ['Permanent and pensionable', 'Contract', 'Probation']
 
 export const LOAN_PURPOSES = ['Personal expenses', 'Education', 'Medical', 'Home improvement', 'Business', 'Other']
 
 export const REPAYMENT_PERIODS = ['3 months', '6 months', '9 months', '12 months', '18 months', '24 months']
 
-export const DOCUMENT_TYPES = ['Payslip', 'Employment letter', 'Government-issued ID', 'Bank statement']
+export const UPLOAD_SLOTS = [
+  { slot: 'workId', label: 'Work ID Card', required: true, accept: 'image/*,application/pdf', hint: 'Image or PDF' },
+  { slot: 'passport', label: 'Passport Photograph', required: true, accept: 'image/*', hint: 'Image only' },
+  { slot: 'signature', label: 'Signature', required: true, accept: 'image/*', hint: 'Image only' },
+  { slot: 'other', label: 'Other Documents', required: false, accept: 'image/*,application/pdf', hint: 'Image or PDF' },
+] as const
+
+export const REQUIRED_UPLOADS = UPLOAD_SLOTS.filter((item) => item.required).map((item) => item.slot)

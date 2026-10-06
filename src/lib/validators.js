@@ -8,8 +8,12 @@ export function isEmail(value) {
 
 /** @param {string} value */
 export function isPhone(value) {
-  const digits = value.replace(/[\s-]/g, '')
-  return /^(\+234|0)\d{10}$/.test(digits)
+  return /^0\d{10}$/.test(value)
+}
+
+/** @param {string} value */
+export function toPhoneDigits(value) {
+  return value.replace(/\D/g, '').slice(0, 11)
 }
 
 /** @param {string} email */

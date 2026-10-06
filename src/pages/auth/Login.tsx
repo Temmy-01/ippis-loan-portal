@@ -71,7 +71,7 @@ export default function Login() {
                 error={errors.password}
               />
 
-              <Button type="submit" tone="lilac" loading={submitting}>
+              <Button type="submit" tone={isEmail(email) && password ? 'purple' : 'lilac'} loading={submitting}>
                 Sign In
               </Button>
 

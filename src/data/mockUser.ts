@@ -9,11 +9,6 @@ export const mockUser = {
 
 export const mockApplication = {
   id: 'DM-IPPIS-000123',
-  completedSteps: 4,
-  totalSteps: 6,
-  lastSaved: '18 June 2025, 10:42 AM',
-  nextStep: 'Upload Documents',
-  nextStepPath: '/apply/documents',
   amount: '750000',
   dateStarted: '15 June 2025',
   lastUpdated: '18 June 2025',

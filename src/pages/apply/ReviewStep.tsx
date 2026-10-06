@@ -5,6 +5,7 @@ import iconEdit from '@/assets/apply/icon-edit.svg'
 import iconWarning from '@/assets/apply/icon-warning.svg'
 import { LINK_BUTTON } from '@/components/apply/buttonStyles'
 import { InfoBox } from '@/components/apply/InfoBox'
+import { UPLOAD_SLOTS } from '@/data/applicationOptions'
 import { StepPage } from '@/components/apply/StepPage'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { cn } from '@/lib/cn'
@@ -88,9 +89,7 @@ export default function ReviewStep() {
           step="employment"
           delay={120}
           items={[
-            { label: 'Employer', value: data.employer },
-            { label: 'Designation', value: data.designation },
-            { label: 'Work location', value: data.workLocation },
+            { label: 'Employer organization', value: data.employer },
           ]}
         />
         <Section
@@ -99,7 +98,6 @@ export default function ReviewStep() {
           delay={180}
           items={[
             { label: 'IPPIS number', value: maskNumber(data.ippisNumber) },
-            { label: 'Payroll identifier', value: data.payrollId ? 'Provided' : '' },
           ]}
         />
         <Section
@@ -117,8 +115,11 @@ export default function ReviewStep() {
           step="documents"
           delay={300}
           items={[
-            { label: 'Supporting document', value: data.documents.map((doc) => doc.name).join(', ') },
-            { label: 'Upload status', value: data.documents.length ? 'Complete' : '' },
+            ...UPLOAD_SLOTS.map(({ slot, label, required }) => ({
+              label,
+              value: data.uploads[slot]?.name ?? '',
+              fallback: required ? undefined : 'None',
+            })),
           ]}
         />
       </div>

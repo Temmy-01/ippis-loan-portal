@@ -7,7 +7,7 @@ import { OUTLINE_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { Field, TextInput } from '@/components/apply/FormField'
 import { fullName, initials, mockUser } from '@/data/mockUser'
 import { cn } from '@/lib/cn'
-import { isEmail, isPhone, maskEmail } from '@/lib/validators'
+import { isEmail, isPhone, maskEmail, toPhoneDigits } from '@/lib/validators'
 
 const TABS = [
   { id: 'details', label: 'Profile Details' },
@@ -68,7 +68,7 @@ function ContactInformation() {
     event.preventDefault()
     const next: typeof errors = {}
     if (email && !isEmail(email)) next.email = 'Enter a valid email address'
-    if (phone && !isPhone(phone)) next.phone = 'Enter a valid phone number'
+    if (phone && !isPhone(phone)) next.phone = 'Enter an 11-digit phone number, e.g. 08012345678'
     if (!email && !phone) next.form = 'Enter a new email address or phone number'
     setErrors(next)
     if (Object.keys(next).length) return
@@ -95,7 +95,7 @@ function ContactInformation() {
           </Field>
           <Field label="Phone number" error={errors.phone}>
             {({ id, describedBy, invalid }) => (
-              <TextInput id={id} type="tel" inputMode="tel" autoComplete="tel" aria-describedby={describedBy} invalid={invalid} placeholder="080 1234 5678" value={phone} onValueChange={(value) => { setPhone(value); setErrors({}) }} />
+              <TextInput id={id} type="tel" inputMode="numeric" maxLength={11} autoComplete="tel" aria-describedby={describedBy} invalid={invalid} placeholder="080 1234 5678" value={phone} onValueChange={(value) => { setPhone(toPhoneDigits(value)); setErrors({}) }} />
             )}
           </Field>
         </div>

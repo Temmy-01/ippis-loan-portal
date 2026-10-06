@@ -1,17 +1,28 @@
 import type { CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 
 import iconChevronRight from '@/assets/app/icon-chevron-right.svg'
 import iconShieldMuted from '@/assets/apply/icon-shield-muted.svg'
 import infoBegin from '@/assets/apply/info-begin.svg'
 import { LINK_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { InfoBox } from '@/components/apply/InfoBox'
+import { useApplication } from '@/features/application/ApplicationContext'
 import { APPLICATION_STEPS } from '@/features/application/steps'
 import { cn } from '@/lib/cn'
 
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
 export default function GetStarted() {
+  const navigate = useNavigate()
+  const { data, update } = useApplication()
+
+  if (!data.loanPackage) return <Navigate to="/loan-packages" replace />
+
+  const begin = () => {
+    if (!data.startedAt) update({ startedAt: new Date().toISOString() })
+    navigate('/apply/personal')
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[860px] flex-col">
       <Link
@@ -75,10 +86,10 @@ export default function GetStarted() {
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/apply/personal" className={cn(PRIMARY_BUTTON, 'group')}>
+        <button type="button" onClick={begin} className={cn(PRIMARY_BUTTON, 'group')}>
           Begin Application
           <img src={iconChevronRight} alt="" className="block size-5 transition-transform duration-200 group-hover:translate-x-1" />
-        </Link>
+        </button>
         <Link to="/dashboard" className={LINK_BUTTON}>
           Not now
         </Link>

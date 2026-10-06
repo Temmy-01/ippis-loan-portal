@@ -4,7 +4,7 @@ import { Field, SelectInput, TextInput } from '@/components/apply/FormField'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
 import { GENDERS, NIGERIAN_STATES } from '@/data/applicationOptions'
 import { required, useStepErrors } from '@/features/application/useStepErrors'
-import { isEmail, isPhone } from '@/lib/validators'
+import { isEmail, isPhone, toPhoneDigits } from '@/lib/validators'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 
@@ -13,7 +13,7 @@ export default function PersonalStep() {
   const { validate, field } = useStepErrors({
     fullName: required('Enter your full name'),
     dateOfBirth: required('Enter your date of birth'),
-    phone: (value) => (isPhone(value) ? undefined : 'Enter a valid phone number'),
+    phone: (value) => (isPhone(value) ? undefined : 'Enter an 11-digit phone number, e.g. 08012345678'),
     email: (value) => (isEmail(value) ? undefined : 'Enter a valid email address'),
     state: required('Select your state of residence'),
     address: required('Enter your residential address'),
@@ -59,7 +59,7 @@ export default function PersonalStep() {
           </Field>
           <Field label="Phone number" error={phone.error}>
             {({ id, describedBy, invalid }) => (
-              <TextInput id={id} type="tel" inputMode="tel" aria-describedby={describedBy} invalid={invalid} autoComplete="tel" placeholder="080 1234 5678" value={phone.value} onValueChange={phone.onValueChange} />
+              <TextInput id={id} type="tel" inputMode="numeric" maxLength={11} aria-describedby={describedBy} invalid={invalid} autoComplete="tel" placeholder="080 1234 5678" value={phone.value} onValueChange={(value) => phone.onValueChange(toPhoneDigits(value))} />
             )}
           </Field>
           <Field label="Email address" error={email.error}>

@@ -14,7 +14,6 @@ export default function IppisStep() {
   })
 
   const ippis = field('ippisNumber')
-  const payrollId = field('payrollId')
 
   return (
     <StepPage index={2} onContinue={() => validate() && navigate('/apply/loan')}>
@@ -26,11 +25,6 @@ export default function IppisStep() {
           <Field label="IPPIS number" hint="Enter the number exactly as it appears on your record" error={ippis.error}>
             {({ id, describedBy, invalid }) => (
               <TextInput id={id} aria-describedby={describedBy} invalid={invalid} autoComplete="off" placeholder="Enter your IPPIS number" value={ippis.value} onValueChange={ippis.onValueChange} />
-            )}
-          </Field>
-          <Field label="Additional payroll identifier (if required)">
-            {({ id, describedBy }) => (
-              <TextInput id={id} aria-describedby={describedBy} autoComplete="off" placeholder="Enter approved identifier" value={payrollId.value} onValueChange={payrollId.onValueChange} />
             )}
           </Field>
         </div>

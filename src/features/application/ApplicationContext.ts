@@ -1,8 +1,14 @@
 import { createContext, useContext } from 'react'
 
-export type UploadedDocument = { type: string; name: string; size: number }
+import type { LoanPackageId } from '@/data/loanPackages'
+
+export type UploadedDocument = { name: string; size: number }
+
+export type UploadSlot = 'workId' | 'passport' | 'signature' | 'other'
 
 export type ApplicationData = {
+  loanPackage: LoanPackageId | null
+
   fullName: string
   dateOfBirth: string
   gender: string
@@ -12,27 +18,23 @@ export type ApplicationData = {
   address: string
 
   employer: string
-  mda: string
-  employmentStatus: string
-  staffNumber: string
-  designation: string
-  workLocation: string
 
   ippisNumber: string
-  payrollId: string
 
   amount: string
   purpose: string
   repaymentPeriod: string
 
-  documentType: string
-  documents: UploadedDocument[]
+  uploads: Partial<Record<UploadSlot, UploadedDocument>>
 
   consent: boolean
+  startedAt: string | null
+  updatedAt: string | null
   submittedAt: string | null
 }
 
 export const EMPTY_APPLICATION: ApplicationData = {
+  loanPackage: null,
   fullName: '',
   dateOfBirth: '',
   gender: '',
@@ -41,19 +43,14 @@ export const EMPTY_APPLICATION: ApplicationData = {
   state: '',
   address: '',
   employer: '',
-  mda: '',
-  employmentStatus: '',
-  staffNumber: '',
-  designation: '',
-  workLocation: '',
   ippisNumber: '',
-  payrollId: '',
   amount: '',
   purpose: '',
   repaymentPeriod: '',
-  documentType: '',
-  documents: [],
+  uploads: {},
   consent: false,
+  startedAt: null,
+  updatedAt: null,
   submittedAt: null,
 }
 
