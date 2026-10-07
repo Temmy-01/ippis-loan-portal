@@ -2,10 +2,13 @@ import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttribu
 
 import { cn } from '@/lib/cn'
 
+const BASE = 'min-h-[52px] w-full rounded-[10px] border font-inter text-[16px] leading-[19.5px] outline-none'
+
 const CONTROL =
-  'min-h-[52px] w-full rounded-[10px] border bg-white font-inter text-[16px] leading-[19.5px] text-app-ink outline-none ' +
-  'transition-[border-color,box-shadow] duration-200 hover:border-[#c4bfc9] ' +
+  `${BASE} bg-white text-app-ink transition-[border-color,box-shadow] duration-200 hover:border-[#c4bfc9] ` +
   'focus:border-lms-lilac focus:shadow-[0_0_0_4px_rgb(200_125_254/0.15)]'
+
+const LOCKED = `${BASE} cursor-not-allowed border-[#d9d5dc] bg-app-bg text-app-muted`
 
 type FieldProps = {
   label: string
@@ -45,9 +48,13 @@ export function Field({ label, hint, error, className, children }: FieldProps) {
 type TextInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {
   onValueChange: (value: string) => void
   invalid?: boolean
+  locked?: boolean
 }
 
-export function TextInput({ onValueChange, invalid, className, ...props }: TextInputProps) {
+export function TextInput({ onValueChange, invalid, locked, className, ...props }: TextInputProps) {
+  if (locked) {
+    return <input {...props} readOnly aria-readonly="true" className={cn(LOCKED, 'px-[15px]', className)} />
+  }
   return (
     <input
       {...props}

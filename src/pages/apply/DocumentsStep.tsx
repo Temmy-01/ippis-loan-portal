@@ -12,31 +12,40 @@ import { formatFileSize } from '@/lib/format'
 
 type SlotConfig = (typeof UPLOAD_SLOTS)[number]
 
+const MAX_FILE_BYTES = 5 * 1024 * 1024
+
 function matchesAccept(file: File, accept: string) {
   return accept.split(',').some((type) => (type.endsWith('/*') ? file.type.startsWith(type.slice(0, -1)) : file.type === type))
 }
 
 function UploadBox({ config, error, onError }: { config: SlotConfig; error?: string; onError: (message?: string) => void }) {
-  const { data, update } = useApplication()
+  const { data, uploadDocument, removeDocument } = useApplication()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
+  const [busy, setBusy] = useState(false)
   const file = data.uploads[config.slot]
 
-  const setFile = (next: File | undefined) => {
-    if (!next) return
+  const setFile = async (next: File | undefined) => {
+    if (!next || busy) return
     if (!matchesAccept(next, config.accept)) {
       onError(`${config.label} must be ${config.hint === 'Image only' ? 'an image' : 'an image or PDF'}`)
       return
     }
-    // TODO: upload the file to the API and keep the returned reference.
-    update({ uploads: { ...data.uploads, [config.slot]: { name: next.name, size: next.size } } })
-    onError(undefined)
+    if (next.size > MAX_FILE_BYTES) {
+      onError('The file is too large. The maximum size is 5MB.')
+      return
+    }
+    setBusy(true)
+    const error = await uploadDocument(config.slot, next)
+    setBusy(false)
+    onError(error ?? undefined)
   }
 
-  const remove = () => {
-    const rest = { ...data.uploads }
-    delete rest[config.slot]
-    update({ uploads: rest })
+  const remove = async () => {
+    setBusy(true)
+    const error = await removeDocument(config.slot)
+    setBusy(false)
+    onError(error ?? undefined)
   }
 
   const onDrop = (event: DragEvent) => {
@@ -59,6 +68,7 @@ function UploadBox({ config, error, onError }: { config: SlotConfig; error?: str
         </span>
       </div>
 
+      <div className="relative">
       {file ? (
         <div className="anim-fade-in flex min-h-[150px] flex-col items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-lms-lilac bg-lilac-soft/40 px-4 py-5 text-center">
           <span className="anim-pop flex size-12 items-center justify-center rounded-[24px] bg-lms-purple font-inter text-[11px] font-bold text-white uppercase">
@@ -103,6 +113,13 @@ function UploadBox({ config, error, onError }: { config: SlotConfig; error?: str
         </div>
       )}
 
+      {busy && (
+        <div className="anim-fade-in absolute inset-0 flex items-center justify-center gap-2 rounded-[14px] bg-white/80 font-inter text-[13px] font-bold text-lms-purple">
+          <span className="anim-spin size-4 rounded-full border-2 border-lms-lilac/40 border-t-lms-purple" />
+          Please wait…
+        </div>
+      )}
+      </div>
       <input
         ref={inputRef}
         type="file"

@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 
 import iconCursor from '@/assets/auth/icon-cursor.svg'
 import iconHeadset from '@/assets/auth/icon-headset.svg'
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Logo } from '@/components/ui/Logo'
 import { TextField } from '@/components/ui/TextField'
+import { useSession } from '@/features/auth/session'
+import { api } from '@/lib/api'
 import { isEmail, isPhone, toPhoneDigits } from '@/lib/validators'
 
 const FEATURES = [
@@ -40,8 +42,12 @@ type Errors = Partial<Record<Field | 'terms', string>>
 
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
+const STRONG_PASSWORD = /^(?=.*\d)(?=.*[^A-Za-z\d]).{8,72}$/
+
 export default function SignUp() {
   const navigate = useNavigate()
+  const session = useSession()
+  const [formError, setFormError] = useState('')
   const [form, setForm] = useState<Record<Field, string>>({
     fullName: '',
     email: '',
@@ -64,18 +70,34 @@ export default function SignUp() {
     if (form.fullName.trim().split(/\s+/).length < 2) nextErrors.fullName = 'Enter your first and last name'
     if (!isEmail(form.email)) nextErrors.email = 'Enter a valid email address'
     if (!isPhone(form.phone)) nextErrors.phone = 'Enter an 11-digit phone number, e.g. 08012345678'
-    if (form.password.length < 8) nextErrors.password = 'Use at least 8 characters'
+    if (!STRONG_PASSWORD.test(form.password)) nextErrors.password = 'Use at least 8 characters, with a number and a symbol'
     if (form.confirmPassword !== form.password) nextErrors.confirmPassword = 'Passwords do not match'
     if (!agreed) nextErrors.terms = 'Please accept the terms to continue'
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
 
+    setFormError('')
     setSubmitting(true)
-    // TODO: call the sign-up endpoint, which sends the verification code.
-    await new Promise((resolve) => setTimeout(resolve, 900))
+    const email = form.email.trim().toLowerCase()
+    const result = await api<{ email: string }>('/portal/auth/register', {
+      body: {
+        fullName: form.fullName.trim().replace(/\s+/g, ' '),
+        email,
+        phone: form.phone,
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+      },
+    })
     setSubmitting(false)
-    navigate('/verify', { state: { email: form.email.trim() } })
+
+    if (result.ok) {
+      navigate('/verify', { state: { mode: 'signup', email, maskedEmail: result.payload?.email } })
+      return
+    }
+    setFormError(result.message)
   }
+
+  if (session) return <Navigate to="/dashboard" replace />
 
   return (
     <>
@@ -203,6 +225,11 @@ export default function SignUp() {
                   error={errors.confirmPassword}
                   toggleClassName="right-1 text-lms-lilac"
                 />
+                {formError && (
+                  <p role="alert" className="anim-fade-in -mt-2 rounded-[10px] bg-[#fdecec] px-3 py-2.5 font-poppins text-[13px] text-danger">
+                    {formError}
+                  </p>
+                )}
                 <Button type="submit" loading={submitting}>
                   Sign Up
                 </Button>

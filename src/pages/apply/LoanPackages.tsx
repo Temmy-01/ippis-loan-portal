@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { LuShieldCheck, LuUser } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
 
@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn'
 
 const ICONS = { ippis: LuShieldCheck, private: LuUser }
 
-function PackageCard({ item, index, onApply }: { item: LoanPackage; index: number; onApply: () => void }) {
+function PackageCard({ item, index, busy, onApply }: { item: LoanPackage; index: number; busy: boolean; onApply: () => void }) {
   const Icon = ICONS[item.id]
   return (
     <section
@@ -44,8 +44,8 @@ function PackageCard({ item, index, onApply }: { item: LoanPackage; index: numbe
 
       <div className="mt-auto pt-8">
         {item.available ? (
-          <button type="button" onClick={onApply} className={cn(PRIMARY_BUTTON, 'w-full')}>
-            Apply Now
+          <button type="button" onClick={onApply} disabled={busy} className={cn(PRIMARY_BUTTON, 'w-full')}>
+            {busy ? <span className="anim-spin size-5 rounded-full border-2 border-white/40 border-t-white" aria-label="Starting" /> : 'Apply Now'}
           </button>
         ) : (
           <button
@@ -63,20 +63,30 @@ function PackageCard({ item, index, onApply }: { item: LoanPackage; index: numbe
 
 export default function LoanPackages() {
   const navigate = useNavigate()
-  const { data, update, reset } = useApplication()
+  const { start } = useApplication()
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState('')
 
-  const apply = (item: LoanPackage) => {
-    if (data.submittedAt || (data.loanPackage && data.loanPackage !== item.id)) reset()
-    update({ loanPackage: item.id })
-    navigate('/apply')
+  const apply = async (item: LoanPackage) => {
+    setError('')
+    setBusyId(item.id)
+    const problem = await start(item.id)
+    setBusyId(null)
+    if (problem) setError(problem)
+    else navigate('/apply')
   }
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader eyebrow="Loan Application" title="Choose a loan package" description="Select the option that applies to you to get started." />
+      {error && (
+        <p role="alert" className="anim-fade-in -mt-3 rounded-[10px] bg-[#fdecec] px-3 py-2.5 font-inter text-[14px] text-danger">
+          {error}
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {LOAN_PACKAGES.map((item, index) => (
-          <PackageCard key={item.id} item={item} index={index} onApply={() => apply(item)} />
+          <PackageCard key={item.id} item={item} index={index} busy={busyId === item.id} onApply={() => apply(item)} />
         ))}
       </div>
     </div>

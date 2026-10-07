@@ -1,41 +1,49 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useState, type FormEvent } from 'react'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { AuthBackground } from '@/components/auth/AuthBackground'
 import { Button } from '@/components/ui/Button'
 import { OtpInput } from '@/components/ui/OtpInput'
+import { type Customer, setSession, updateCustomer } from '@/features/auth/session'
+import { formatTime, useCodeTimer } from '@/features/auth/useCodeTimer'
+import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
-import { maskEmail } from '@/lib/validators'
 
 const CODE_LENGTH = 6
-const RESEND_AFTER_SECONDS = 90
 
-const formatTime = (seconds: number) =>
-  `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+type VerifyState = {
+  mode: 'signup' | 'contact'
+  email?: string
+  maskedEmail?: string
+  maskedPhone?: string
+}
 
 export default function VerifyOtp() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { email, returnTo } = (location.state as { email?: string; returnTo?: string } | null) ?? {}
-  const maskedEmail = email ? maskEmail(email) : 'a••••@email.com'
+  const state = location.state as VerifyState | null
+  const sentTo = state?.maskedEmail ?? state?.maskedPhone ?? 'your email and phone'
 
   const [code, setCode] = useState('')
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_AFTER_SECONDS)
+  const timer = useCodeTimer()
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (secondsLeft <= 0) return
-    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [secondsLeft])
+  if (!state?.mode || (state.mode === 'signup' && !state.email)) return <Navigate to="/signup" replace />
 
-  const handleResend = () => {
-    if (secondsLeft > 0) return
-    // TODO: call the resend-code endpoint.
+  const handleResend = async () => {
+    if (!timer.canResend) return
+    if (state.mode === 'contact') {
+      navigate('/profile?tab=contact')
+      return
+    }
     setCode('')
     setError('')
-    setSecondsLeft(RESEND_AFTER_SECONDS)
+    timer.restart()
+    const result = await api('/portal/auth/resend-otp', { body: { email: state.email } })
+    if (result.ok) setNotice('We have sent you a new code.')
+    else setError(result.message)
   }
 
   const handleSubmit = async (event: FormEvent) => {
@@ -45,10 +53,33 @@ export default function VerifyOtp() {
       return
     }
     setSubmitting(true)
-    // TODO: call the verify-code endpoint.
-    await new Promise((resolve) => setTimeout(resolve, 900))
+
+    if (state.mode === 'signup') {
+      const result = await api<{ token: string; customer: Customer }>('/portal/auth/verify-otp', {
+        body: { email: state.email, code },
+      })
+      setSubmitting(false)
+      if (result.ok && result.payload) {
+        setSession(result.payload)
+        navigate('/dashboard', { replace: true })
+        return
+      }
+      setError(result.message)
+      return
+    }
+
+    const result = await api<Customer>('/portal/auth/contact/verify', { body: { code }, auth: true })
     setSubmitting(false)
-    navigate(returnTo ?? '/login')
+    if (result.ok && result.payload) {
+      updateCustomer(result.payload)
+      navigate('/profile', { replace: true })
+      return
+    }
+    if (result.status === 401) {
+      navigate('/login', { replace: true })
+      return
+    }
+    setError(result.message)
   }
 
   return (
@@ -66,7 +97,7 @@ export default function VerifyOtp() {
               Verify your contact details
             </h1>
             <p className="font-poppins text-[16px] leading-[25px] text-ink-navy sm:text-[18px]">
-              We've sent a verification code to {maskedEmail}.
+              We've sent a verification code to {sentTo}.
               <br />
               Enter the code to confirm your details.
             </p>
@@ -76,7 +107,7 @@ export default function VerifyOtp() {
             <div className="flex h-7 items-center justify-between font-inter text-[15px] text-slate">
               <span className="font-medium">Enter Verification code</span>
               <span className="tracking-[-0.165px] tabular-nums" aria-live="polite">
-                {formatTime(secondsLeft)}
+                {timer.expired ? 'Code expired' : `Expires in ${formatTime(timer.secondsLeft)}`}
               </span>
             </div>
 
@@ -98,17 +129,22 @@ export default function VerifyOtp() {
                 {error}
               </p>
             )}
+            {notice && !error && (
+              <p role="status" className="anim-fade-in mt-2 font-poppins text-[12px] text-[#147a55]">
+                {notice}
+              </p>
+            )}
 
             <button
               type="button"
               onClick={handleResend}
-              disabled={secondsLeft > 0}
+              disabled={!timer.canResend}
               className={cn(
                 'mt-[26px] font-inter text-[14px] font-bold tracking-[-0.154px] text-indigo transition-opacity',
-                secondsLeft > 0 ? 'cursor-default' : 'hover:underline',
+                timer.canResend ? 'hover:underline' : 'cursor-default opacity-40',
               )}
             >
-              Resend Verification code?
+              {state.mode === 'contact' ? 'Request a new code' : 'Resend Verification code?'}
             </button>
           </div>
 

@@ -1,19 +1,27 @@
 import { useState, type CSSProperties, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import avatars from '@/assets/auth/avatars.svg'
 import { AuthBackground } from '@/components/auth/AuthBackground'
 import { Button } from '@/components/ui/Button'
 import { Logo } from '@/components/ui/Logo'
 import { TextField } from '@/components/ui/TextField'
+import { type Customer, setSession, useSession } from '@/features/auth/session'
+import { api } from '@/lib/api'
 import { isEmail } from '@/lib/validators'
 
 type Errors = Partial<Record<'email' | 'password', string>>
 
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
+type LoginReply = { token?: string; customer?: Customer; needsVerification?: boolean; email?: string }
+
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const session = useSession()
+  const [formError, setFormError] = useState('')
+  const notice = (location.state as { notice?: string } | null)?.notice
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<Errors>({})
@@ -27,12 +35,26 @@ export default function Login() {
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
 
+    setFormError('')
     setSubmitting(true)
-    // TODO: call the login endpoint.
-    await new Promise((resolve) => setTimeout(resolve, 900))
+    const cleanEmail = email.trim().toLowerCase()
+    const result = await api<LoginReply>('/portal/auth/login', { body: { email: cleanEmail, password } })
     setSubmitting(false)
-    navigate('/dashboard')
+
+    if (result.ok && result.payload?.token && result.payload.customer) {
+      setSession({ token: result.payload.token, customer: result.payload.customer })
+      const from = (location.state as { from?: string } | null)?.from
+      navigate(from ?? '/dashboard', { replace: true })
+      return
+    }
+    if (result.payload?.needsVerification) {
+      navigate('/verify', { state: { mode: 'signup', email: cleanEmail, maskedEmail: result.payload.email } })
+      return
+    }
+    setFormError(result.message)
   }
+
+  if (session) return <Navigate to="/dashboard" replace />
 
   return (
     <>
@@ -43,6 +65,12 @@ export default function Login() {
           <section className="anim-card-in w-full rounded-[32px] bg-white px-6 py-12 shadow-[0_30px_80px_-30px_rgb(20_5_40/0.45)] sm:px-[77px] sm:py-[114px] xl:w-[590px]">
             <h1 className="font-poppins text-[30px] leading-[40px] font-semibold text-ink sm:text-[36px] sm:leading-[48px]">Sign in</h1>
             <p className="mt-[7px] font-poppins text-[14px] font-medium text-ink">Enter your valid credentials</p>
+
+            {notice && (
+              <p role="status" className="anim-fade-in mt-5 rounded-[10px] bg-[#e7f6ef] px-3 py-2.5 font-poppins text-[13px] text-[#147a55]">
+                {notice}
+              </p>
+            )}
 
             <form noValidate onSubmit={handleSubmit} className="mt-[39px] flex flex-col gap-5">
               <TextField
@@ -70,6 +98,18 @@ export default function Login() {
                 }}
                 error={errors.password}
               />
+
+              <div className="-mt-2 flex justify-end">
+                <Link to="/forgot-password" className="font-inter text-[13px] font-semibold text-lms-purple hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
+
+              {formError && (
+                <p role="alert" className="anim-fade-in -mt-1 rounded-[10px] bg-[#fdecec] px-3 py-2.5 font-poppins text-[13px] text-danger">
+                  {formError}
+                </p>
+              )}
 
               <Button type="submit" tone={isEmail(email) && password ? 'purple' : 'lilac'} loading={submitting}>
                 Sign In

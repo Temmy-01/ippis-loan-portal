@@ -27,7 +27,11 @@ export function OtpInput({ value, onChange, length = 6, error, autoFocus }: OtpI
   }
 
   const handleKeyDown = (index: number, event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Backspace') {
+    if (/^\d$/.test(event.key)) {
+      event.preventDefault()
+      setDigit(index, event.key)
+      focusBox(index + 1)
+    } else if (event.key === 'Backspace') {
       event.preventDefault()
       if (digits[index]) setDigit(index, '')
       else if (index > 0) {
@@ -78,7 +82,7 @@ export function OtpInput({ value, onChange, length = 6, error, autoFocus }: OtpI
             'h-[56px] w-full min-w-0 rounded-[8px] border border-solid bg-white text-center font-poppins text-[22px] font-semibold text-ink outline-none sm:w-[70px]',
             'transition-[border-color,box-shadow,transform] duration-200 ease-out',
             'focus:-translate-y-0.5 focus:border-lms-lilac focus:shadow-[0_0_0_4px_rgb(200_125_254/0.15)]',
-            error ? 'border-danger' : digit ? 'border-lms-lilac/60' : 'border-lavender',
+            error ? 'border-danger' : digit ? 'border-lms-lilac' : 'border-[#cfc9d4] bg-[#fdfcfe]',
           )}
         />
       ))}

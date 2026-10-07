@@ -1,45 +1,52 @@
 import type { CSSProperties } from 'react'
-import { LuCheck, LuClock } from 'react-icons/lu'
-import { Link } from 'react-router-dom'
+import { LuCheck, LuCircleCheck, LuCircleX, LuClock, LuTriangleAlert } from 'react-icons/lu'
+import { Link, Navigate } from 'react-router-dom'
 
 import { PageHeader } from '@/components/app/PageHeader'
-import { LINK_BUTTON, OUTLINE_BUTTON } from '@/components/apply/buttonStyles'
-import { mockApplication } from '@/data/mockUser'
+import { LINK_BUTTON, OUTLINE_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
+import { getLoanPackage } from '@/data/loanPackages'
 import { useApplication } from '@/features/application/ApplicationContext'
+import { isSubmitted, STATUS_MESSAGES, VERIFY_MESSAGE, type StatusTone } from '@/features/application/status'
+import { useTimeline } from '@/features/application/useTimeline'
 import { cn } from '@/lib/cn'
-import { formatDate, formatNaira } from '@/lib/format'
+import { formatDateTime, formatNaira } from '@/lib/format'
 
-const STAGES = [
-  'Application Started',
-  'Submitted',
-  'Under Review',
-  'Verification',
-  'Decision',
-  'Loan Offer',
-  'Offer Accepted',
-  'Disbursement',
-]
-
-const CURRENT_STAGE = 2
+const TONE_ICONS: Record<StatusTone, typeof LuClock> = {
+  progress: LuClock,
+  success: LuCircleCheck,
+  negative: LuCircleX,
+  warning: LuTriangleAlert,
+}
 
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
 export default function TrackApplication() {
-  const { data } = useApplication()
-  const submitted = data.submittedAt ? formatDate(data.submittedAt.slice(0, 10)) : mockApplication.dateSubmitted
+  const { data, loading } = useApplication()
+  const { timeline, error } = useTimeline(isSubmitted(data.status) ? data.id : null)
+
+  if (loading) return null
+  if (!isSubmitted(data.status)) return <Navigate to="/applications" replace />
+
+  const summary = timeline?.summary ?? data.summary
+  const status = timeline?.status ?? data.status
+  const tone = summary?.tone ?? 'progress'
+  const Icon = TONE_ICONS[tone]
+  const stages = timeline?.stages ?? []
+  const reached = stages.reduce((last, stage, index) => (stage.state === 'upcoming' ? last : index), -1)
+  const lineWidth = stages.length ? ((reached + (stages[reached]?.state === 'done' ? 1 : 0.5)) / stages.length) * 100 : 0
 
   const details = [
-    { label: 'Application ID', value: mockApplication.id },
-    { label: 'Requested amount', value: formatNaira(data.amount || mockApplication.amount), sample: !data.amount },
-    { label: 'Date submitted', value: submitted },
-    { label: 'Last updated', value: mockApplication.statusUpdated },
+    { label: 'Application ID', value: data.reference ?? '—' },
+    { label: 'Requested amount', value: formatNaira(data.amount) || '—' },
+    { label: 'Date submitted', value: data.submittedAt ? formatDateTime(data.submittedAt) : '—' },
+    { label: 'Last updated', value: timeline ? formatDateTime(timeline.lastUpdated) : '—' },
   ]
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         eyebrow="Application Status"
-        title="Your IPPIS Loan Application"
+        title={`Your ${getLoanPackage(data.loanPackage).shortName} Application`}
         description="Track progress and see whether you need to take any action."
       />
 
@@ -51,30 +58,35 @@ export default function TrackApplication() {
           <div className="flex items-start gap-8">
             <div className="min-w-0 flex-1">
               <span className="inline-flex min-h-7 items-center gap-[7px] rounded-[20px] bg-white/15 px-2.5 py-1">
-                <span className="size-[7px] animate-pulse rounded-full bg-white" />
-                <span className="font-inter text-[12px] leading-[18.6px] font-bold">Under Review</span>
+                <span className={cn('size-[7px] rounded-full bg-white', tone === 'progress' && 'animate-pulse')} />
+                <span className="font-inter text-[12px] leading-[18.6px] font-bold">{summary?.label ?? 'Submitted'}</span>
               </span>
               <h2 className="mt-3 font-inter text-[22px] leading-[31px] font-bold tracking-[-0.5px] sm:text-[26px]">
-                Current Status: Under Review
+                Current Status: {summary?.label ?? 'Submitted'}
               </h2>
               <p className="mt-2 max-w-[720px] font-inter text-[16px] leading-[25px] text-white/80">
-                Your application has been submitted successfully and is currently being reviewed by our loan team.
-                We'll notify you when there is an update or when an action is required from you.
+                {summary?.action === 'verify_identity' ? VERIFY_MESSAGE : status && status !== 'draft' ? STATUS_MESSAGES[status] : ''}
               </p>
+              {summary?.action === 'verify_identity' && (
+                <Link
+                  to="/verify-identity"
+                  className="mt-5 inline-flex min-h-[46px] items-center rounded-[10px] bg-white px-5 font-inter text-[16px] font-bold text-lms-purple transition-transform hover:-translate-y-px"
+                >
+                  Verify My Identity
+                </Link>
+              )}
+              {error && <p className="mt-2 font-inter text-[14px] text-white/80">{error}</p>}
               <dl className="mt-7 grid grid-cols-2 gap-5 border-t border-white/10 pt-7 lg:grid-cols-4">
-                {details.map(({ label, value, sample }) => (
-                  <div key={label} className="flex flex-col gap-1">
+                {details.map(({ label, value }) => (
+                  <div key={label} className="flex min-w-0 flex-col gap-1">
                     <dt className="font-inter text-[13px] leading-[20px] text-white/70">{label}</dt>
-                    <dd className="flex items-baseline gap-2 font-inter text-[18px] leading-[26px] font-bold">
-                      {value}
-                      {sample && <span className="text-[9px] font-semibold tracking-[0.5px] text-lms-purple uppercase">Sample</span>}
-                    </dd>
+                    <dd className="font-inter text-[16px] leading-[24px] font-bold break-words sm:text-[18px] sm:leading-[26px]">{value}</dd>
                   </div>
                 ))}
               </dl>
             </div>
             <span className="mt-[62px] hidden size-[100px] shrink-0 items-center justify-center rounded-full bg-white/10 md:flex">
-              <LuClock className="size-[34px] text-lms-lilac" />
+              <Icon className="size-[34px] text-lms-lilac" />
             </span>
           </div>
         </section>
@@ -91,38 +103,45 @@ export default function TrackApplication() {
           </p>
 
           <div className="mt-9 overflow-x-auto pb-1">
-            <ol className="relative grid min-w-[720px] grid-cols-8">
+            <ol className="relative grid min-w-[720px]" style={{ gridTemplateColumns: `repeat(${stages.length || 1}, minmax(0, 1fr))` }}>
               <span className="absolute top-[15px] right-0 left-0 h-[2px] bg-app-line" />
-              <span
-                className="anim-grow-x absolute top-[15px] left-0 h-[2px] bg-lms-purple"
-                style={{ width: `${(CURRENT_STAGE / STAGES.length) * 100}%`, '--delay': '500ms' } as CSSProperties}
-              />
-              {STAGES.map((stage, index) => {
-                const done = index < CURRENT_STAGE
-                const current = index === CURRENT_STAGE
+              {stages.length > 0 && (
+                <span
+                  className="anim-grow-x absolute top-[15px] left-0 h-[2px] bg-lms-purple"
+                  style={{ width: `${lineWidth}%`, '--delay': '500ms' } as CSSProperties}
+                />
+              )}
+              {stages.map((stage, index) => {
+                const done = stage.state === 'done'
+                const stopped = stage.state === 'failed'
+                const here = stage.state === 'current'
                 return (
                   <li
-                    key={stage}
-                    aria-current={current ? 'step' : undefined}
+                    key={stage.name}
+                    aria-current={here ? 'step' : undefined}
                     className="anim-fade-up relative flex flex-col items-center gap-3 text-center"
                     style={delay(300 + index * 60)}
                   >
                     <span
                       className={cn(
-                        'relative flex size-[30px] items-center justify-center rounded-full border font-inter text-[12px]',
-                        done || current ? 'border-lms-purple bg-lms-purple text-white' : 'border-app-line bg-white text-[#a09aa5]',
-                        current && 'anim-pulse-ring-purple',
+                        'relative z-[1] flex size-[30px] items-center justify-center rounded-full border font-inter text-[12px]',
+                        stopped
+                          ? 'border-[#b4282d] bg-[#b4282d] text-white'
+                          : done || here
+                            ? 'border-lms-purple bg-lms-purple text-white'
+                            : 'border-app-line bg-white text-[#a09aa5]',
+                        here && 'anim-pulse-ring-purple',
                       )}
                     >
-                      {done ? <LuCheck className="size-3.5" strokeWidth={3} /> : index + 1}
+                      {stopped ? <LuCircleX className="size-4" /> : done ? <LuCheck className="size-3.5" strokeWidth={3} /> : index + 1}
                     </span>
                     <span
                       className={cn(
                         'font-inter text-[12.5px] leading-[18px]',
-                        done || current ? 'font-bold text-lms-purple' : 'font-semibold text-[#a09aa5]',
+                        stopped ? 'font-bold text-[#b4282d]' : done || here ? 'font-bold text-lms-purple' : 'font-semibold text-[#a09aa5]',
                       )}
                     >
-                      {stage}
+                      {stage.name}
                     </span>
                   </li>
                 )
@@ -136,9 +155,11 @@ export default function TrackApplication() {
         <Link to="/history" className={OUTLINE_BUTTON}>
           View Application History
         </Link>
-        <Link to="/verify-identity" className={LINK_BUTTON}>
-          View Action Required Example
-        </Link>
+        {status === 'closed' && (
+          <Link to="/loan-packages" className={PRIMARY_BUTTON}>
+            Start a New Application
+          </Link>
+        )}
         <a href="tel:8001301448" className={LINK_BUTTON}>
           Contact Support
         </a>

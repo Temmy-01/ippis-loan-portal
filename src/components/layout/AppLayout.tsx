@@ -3,7 +3,8 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { mockUser } from '@/data/mockUser'
+import { clearSession, firstNameOf, useSession } from '@/features/auth/session'
+import { useNotificationSync } from '@/features/notifications/store'
 import { cn } from '@/lib/cn'
 
 const GREETING_ROUTES = ['/verify-identity', '/notifications']
@@ -12,12 +13,18 @@ export function AppLayout() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  useNotificationSync()
 
   useEffect(() => {
     document.body.style.backgroundColor = '#f8f7fa'
   }, [])
 
-  const logout = () => navigate('/login')
+  const customer = useSession()?.customer
+
+  const logout = () => {
+    clearSession()
+    navigate('/login')
+  }
 
   return (
     <div className="min-h-dvh bg-app-bg">
@@ -46,7 +53,7 @@ export function AppLayout() {
           leading={
             GREETING_ROUTES.includes(pathname) ? (
               <p className="truncate font-inter text-[16px] leading-[24.8px] text-app-muted">
-                Welcome back, <strong className="font-bold text-app-ink">{mockUser.firstName}</strong>
+                Welcome back, <strong className="font-bold text-app-ink">{customer ? firstNameOf(customer) : ''}</strong>
               </p>
             ) : undefined
           }

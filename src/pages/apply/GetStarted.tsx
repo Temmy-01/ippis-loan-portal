@@ -14,14 +14,12 @@ const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
 export default function GetStarted() {
   const navigate = useNavigate()
-  const { data, update } = useApplication()
+  const { data, loading } = useApplication()
 
-  if (!data.loanPackage) return <Navigate to="/loan-packages" replace />
+  if (loading) return null
+  if (!data.id || data.status !== 'draft') return <Navigate to="/loan-packages" replace />
 
-  const begin = () => {
-    if (!data.startedAt) update({ startedAt: new Date().toISOString() })
-    navigate('/apply/personal')
-  }
+  const begin = () => navigate('/apply/personal')
 
   return (
     <div className="mx-auto flex w-full max-w-[860px] flex-col">

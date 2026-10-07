@@ -24,7 +24,9 @@ export function ApplyLayout({ current, children }: { current: number; children: 
         </Link>
         <Logo tone="color" width={166} height={31} />
         <p className="flex items-center gap-1.5 justify-self-end font-inter text-[13px] leading-[20.15px]" aria-live="polite">
-          {saveStatus === 'saving' ? (
+          {saveStatus === 'error' ? (
+            <span className="text-danger">Couldn't save. Check your connection.</span>
+          ) : saveStatus === 'saving' ? (
             <>
               <span className="anim-spin size-3.5 rounded-full border-2 border-app-line border-t-app-muted" />
               <span className="hidden text-app-muted sm:inline">Saving…</span>

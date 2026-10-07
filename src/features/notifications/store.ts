@@ -1,51 +1,23 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
+
+import { useSession } from '@/features/auth/session'
+import { api } from '@/lib/api'
 
 export type NotificationKind = 'verification' | 'application' | 'account'
 
 export type AppNotification = {
   id: string
   kind: NotificationKind
-  category: string
   title: string
   body: string
-  date: string
-  to: string
-  read: boolean
+  link: string
+  readAt: string | null
+  createdAt: string
 }
 
-let notifications: AppNotification[] = [
-  {
-    id: 'n1',
-    kind: 'verification',
-    category: 'Verification',
-    title: 'Identity verification is required',
-    body: 'Complete verification to help us continue your application.',
-    date: '20 June 2025',
-    to: '/verify-identity',
-    read: false,
-  },
-  {
-    id: 'n2',
-    kind: 'application',
-    category: 'Application',
-    title: 'Your application is under review',
-    body: "We'll notify you if any action is required.",
-    date: '20 June 2025',
-    to: '/track',
-    read: false,
-  },
-  {
-    id: 'n3',
-    kind: 'account',
-    category: 'Account',
-    title: 'Your account has been created',
-    body: 'Welcome to the Dominion Merchant IPPIS Loan Portal.',
-    date: '20 June 2025',
-    to: '/profile',
-    read: false,
-  },
-]
+const REFRESH_MS = 60_000
 
+let notifications: AppNotification[] = []
 const listeners = new Set<() => void>()
 
 const set = (next: AppNotification[]) => {
@@ -58,9 +30,39 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener)
 }
 
-export const markRead = (id: string) => set(notifications.map((n) => (n.id === id ? { ...n, read: true } : n)))
-export const markAllRead = () => set(notifications.map((n) => ({ ...n, read: true })))
+export const loadNotifications = async () => {
+  const result = await api<AppNotification[]>('/portal/notifications', { auth: true })
+  if (result.ok && result.payload) set(result.payload)
+}
+
+export const markRead = (id: string) => {
+  const now = new Date().toISOString()
+  set(notifications.map((n) => (n.id === id && !n.readAt ? { ...n, readAt: now } : n)))
+  api(`/portal/notifications/${id}/read`, { method: 'PATCH', auth: true })
+}
+
+export const markAllRead = () => {
+  const now = new Date().toISOString()
+  set(notifications.map((n) => (n.readAt ? n : { ...n, readAt: now })))
+  api('/portal/notifications/read-all', { method: 'PATCH', auth: true })
+}
 
 export function useNotifications() {
   return useSyncExternalStore(subscribe, () => notifications)
+}
+
+export function useNotificationSync() {
+  const owner = useSession()?.customer.id
+
+  useEffect(() => {
+    set([])
+    if (!owner) return
+    loadNotifications()
+    const timer = setInterval(loadNotifications, REFRESH_MS)
+    window.addEventListener('focus', loadNotifications)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('focus', loadNotifications)
+    }
+  }, [owner])
 }

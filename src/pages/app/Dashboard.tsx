@@ -7,10 +7,12 @@ import iconChevronRight from '@/assets/app/icon-chevron-right.svg'
 import iconShield from '@/assets/app/icon-shield.svg'
 import illusDocument from '@/assets/app/illus-document.svg'
 import { PageHeader } from '@/components/app/PageHeader'
+import { StatusPill } from '@/components/app/StatusPill'
 import { PrototypeFlows } from '@/components/app/PrototypeFlows'
-import { mockApplication, mockUser } from '@/data/mockUser'
+import { firstNameOf, useSession } from '@/features/auth/session'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { getProgress } from '@/features/application/progress'
+import { STATUS_MESSAGES, STATUS_TITLES, TRACK_STAGE_COUNT, VERIFY_MESSAGE, VERIFY_TITLE } from '@/features/application/status'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
 
@@ -21,38 +23,29 @@ const PRIMARY_LINK =
 const SECONDARY_LINK =
   'flex min-h-[50px] items-center justify-center rounded-[10px] px-[11px] font-inter text-[16px] leading-[24.8px] font-bold text-lms-purple transition-colors hover:bg-lilac-soft'
 
-function Pill({ tone, children }: { tone: 'amber' | 'sky'; children: string }) {
-  return (
-    <span
-      className={cn(
-        'flex min-h-7 items-center gap-[7px] self-start rounded-[20px] px-2.5 py-1',
-        tone === 'amber' ? 'bg-amber-soft text-amber' : 'bg-sky-soft text-sky-ink',
-      )}
-    >
-      <span className={cn('size-[7px] animate-pulse rounded-full', tone === 'amber' ? 'bg-amber' : 'bg-sky-ink')} />
-      <span className="font-inter text-[12px] leading-[18.6px] font-bold">{children}</span>
-    </span>
-  )
-}
-
 export default function Dashboard() {
   const { data } = useApplication()
+  const customer = useSession()?.customer
   const progress = getProgress(data)
+  const live = progress.submitted && data.status && data.status !== 'draft' ? data.status : null
+  const summary = data.summary ?? { label: 'Submitted', tone: 'progress' as const, step: 2 }
+  const verify = summary.action === 'verify_identity'
+  const percent = live ? Math.round((summary.step / TRACK_STAGE_COUNT) * 100) : progress.percent
 
   const journey = [
     { title: 'Complete your details', body: 'Your personal and employment information', done: progress.detailsComplete },
     { title: 'Submit your application', body: 'Review your information before sending', done: progress.submitted },
-    { title: 'Track your progress', body: 'See updates and actions in one place', done: false },
+    { title: 'Track your progress', body: 'See updates and actions in one place', done: live === 'disbursed' },
   ]
 
   const details = progress.submitted
     ? [
-        ['Application ID', mockApplication.id],
+        ['Application ID', data.reference ?? ''],
         ['Submitted', data.submittedAt ? formatDateTime(data.submittedAt) : ''],
-        ['Status', 'Under review'],
+        ['Status', summary.label],
       ]
     : [
-        ['Application ID', mockApplication.id],
+        ['Application ID', data.reference ?? ''],
         ['Last saved', data.updatedAt ? formatDateTime(data.updatedAt) : 'Not saved yet'],
         ['Next step', progress.nextStepLabel],
       ]
@@ -61,7 +54,7 @@ export default function Dashboard() {
     <div className="flex flex-col gap-[18px]">
       <PageHeader
         eyebrow="Customer Dashboard"
-        title={`Welcome back, ${mockUser.firstName.toUpperCase()}`}
+        title={`Welcome back, ${customer ? firstNameOf(customer).toUpperCase() : ''}`}
         description={
           progress.started
             ? "Here's the latest on your IPPIS Loan Application."
@@ -76,7 +69,7 @@ export default function Dashboard() {
         <div className={cn('flex min-w-0 flex-1 flex-col gap-[7px]', !progress.started && 'md:justify-center md:pb-6')}>
           {!progress.started ? (
             <>
-              <Pill tone="sky">No application yet</Pill>
+              <StatusPill tone="progress" label="No application yet" pulse />
               <h2 className="pt-[6.25px] font-inter text-[22px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink sm:text-[24px]">
                 Apply for a loan
               </h2>
@@ -93,29 +86,35 @@ export default function Dashboard() {
             </>
           ) : (
             <>
-              {progress.submitted ? <Pill tone="sky">Submitted</Pill> : <Pill tone="amber">Action Required</Pill>}
+              {live ? (
+                <StatusPill tone={summary.tone} label={summary.label} pulse={summary.tone === 'progress'} />
+              ) : (
+                <StatusPill tone="warning" label="Action Required" pulse />
+              )}
               <h2 className="pt-[6.25px] font-inter text-[22px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink sm:text-[24px]">
-                {progress.submitted ? 'Your application has been submitted' : 'Continue your application'}
+                {verify ? VERIFY_TITLE : live ? STATUS_TITLES[live] : 'Continue your application'}
               </h2>
               <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">
-                {progress.submitted
-                  ? 'Our loan team is reviewing your application. We\'ll let you know if anything else is needed.'
+                {verify
+                  ? VERIFY_MESSAGE
+                  : live
+                    ? STATUS_MESSAGES[live]
                   : `You've completed ${progress.completedSteps} of ${progress.totalSteps} steps. Your details are saved and waiting for you.`}
               </p>
 
               <div className="flex items-start justify-between pt-[19px] font-inter text-[14px] leading-[21.7px] text-app-ink">
-                <span>Application progress</span>
-                <strong className="font-bold">{progress.percent}%</strong>
+                <span>{live ? 'Loan progress' : 'Application progress'}</span>
+                <strong className="font-bold">{percent}%</strong>
               </div>
               <div
                 className="h-2 overflow-hidden rounded-[8px] bg-track"
                 role="progressbar"
-                aria-valuenow={progress.percent}
+                aria-valuenow={percent}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label="Application progress"
+                aria-label={live ? 'Loan progress' : 'Application progress'}
               >
-                <div className="anim-grow-x h-full rounded-[8px] bg-lms-purple" style={{ width: `${progress.percent}%` }} />
+                <div className="anim-grow-x h-full rounded-[8px] bg-lms-purple" style={{ width: `${percent}%` }} />
               </div>
 
               <dl className="grid grid-cols-1 gap-[18px] pt-[17px] sm:grid-cols-3">
@@ -128,8 +127,8 @@ export default function Dashboard() {
               </dl>
 
               <div className="flex flex-wrap items-center gap-3 pt-[19px]">
-                <Link to={progress.nextStepPath} className={PRIMARY_LINK}>
-                  {progress.submitted ? 'Track My Application' : 'Continue Where You Left Off'}
+                <Link to={verify ? '/verify-identity' : progress.nextStepPath} className={PRIMARY_LINK}>
+                  {verify ? 'Verify My Identity' : progress.submitted ? 'Track My Application' : 'Continue Where You Left Off'}
                   <img src={iconChevronRight} alt="" className="block size-5 transition-transform duration-200 group-hover:translate-x-1" />
                 </Link>
                 <Link to="/applications" className={SECONDARY_LINK}>

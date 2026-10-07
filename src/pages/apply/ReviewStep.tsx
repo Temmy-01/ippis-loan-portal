@@ -57,18 +57,23 @@ function Section({
 
 export default function ReviewStep() {
   const navigate = useNavigate()
-  const { data, update } = useApplication()
+  const { data, update, submit } = useApplication()
   const [submitting, setSubmitting] = useState(false)
+  const [problem, setProblem] = useState<{ message: string; step?: string } | null>(null)
 
   const contact = [data.email, data.phone].filter(Boolean).join(' · ')
 
   const handleSubmit = async () => {
     if (!data.consent) return
+    setProblem(null)
     setSubmitting(true)
-    // TODO: submit the application to the API.
-    await new Promise((resolve) => setTimeout(resolve, 1200))
-    update({ submittedAt: new Date().toISOString() })
-    navigate('/application-submitted')
+    const result = await submit()
+    setSubmitting(false)
+    if (result.ok) {
+      navigate('/application-submitted')
+      return
+    }
+    setProblem({ message: result.message, step: result.step })
   }
 
   return (
@@ -159,6 +164,17 @@ export default function ReviewStep() {
         Submitting an application does not guarantee loan approval. Your information will be reviewed by the Dominion
         Merchant loan team.
       </InfoBox>
+
+      {problem && (
+        <div role="alert" className="anim-fade-in mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[12px] bg-[#fdecec] px-4 py-3 font-inter text-[14px] text-danger">
+          <span>{problem.message}</span>
+          {problem.step && problem.step !== 'review' && (
+            <button type="button" onClick={() => navigate(`/apply/${problem.step}`)} className="font-bold underline underline-offset-2">
+              Go to that step
+            </button>
+          )}
+        </div>
+      )}
     </StepPage>
   )
 }

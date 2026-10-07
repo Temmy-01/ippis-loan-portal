@@ -5,8 +5,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/app/PageHeader'
 import { OUTLINE_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { Field, TextInput } from '@/components/apply/FormField'
-import { fullName, initials, mockUser } from '@/data/mockUser'
+import { type Customer, clearSession, getSession, initialsOf, setSession, useSession } from '@/features/auth/session'
+import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
+import { formatDate } from '@/lib/format'
 import { isEmail, isPhone, maskEmail, toPhoneDigits } from '@/lib/validators'
 
 const TABS = [
@@ -18,7 +20,7 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id']
 
 const maskPhone = (phone: string) => `${phone.slice(0, 3)} •••• ${phone.slice(-4)}`
-const STRONG_PASSWORD = /^(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/
+const STRONG_PASSWORD = /^(?=.*\d)(?=.*[^A-Za-z\d]).{8,72}$/
 
 function Card({ children }: { children: ReactNode }) {
   return (
@@ -28,21 +30,23 @@ function Card({ children }: { children: ReactNode }) {
   )
 }
 
-function ProfileDetails() {
+function ProfileDetails({ customer }: { customer: Customer }) {
   const details = [
-    { label: 'Full name', value: fullName },
-    { label: 'Registered email', value: maskEmail(mockUser.email) },
-    { label: 'Phone number', value: maskPhone(mockUser.phone) },
+    { label: 'Full name', value: customer.fullName },
+    { label: 'Registered email', value: customer.email },
+    { label: 'Phone number', value: customer.phone },
   ]
   return (
     <Card>
       <div className="flex items-center gap-[18px] pb-7">
         <span className="anim-pop flex size-[72px] shrink-0 items-center justify-center rounded-full bg-lilac-soft font-inter text-[23px] font-bold text-lms-purple">
-          {initials}
+          {initialsOf(customer)}
         </span>
         <div>
-          <p className="font-inter text-[24px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink">{fullName}</p>
-          <p className="mt-1 font-inter text-[16px] leading-[24.8px] text-app-muted">Customer since {mockUser.customerSince}</p>
+          <p className="font-inter text-[24px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink">{customer.fullName}</p>
+          <p className="mt-1 font-inter text-[16px] leading-[24.8px] text-app-muted">
+            Customer since {formatDate(customer.customerSince.slice(0, 10))}
+          </p>
         </div>
       </div>
       <dl className="grid grid-cols-1 gap-5 border-t border-app-line pt-7 sm:grid-cols-3">
@@ -61,7 +65,8 @@ function ContactInformation() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [errors, setErrors] = useState<{ email?: string; phone?: string; form?: string }>({})
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [errors, setErrors] = useState<{ email?: string; phone?: string; currentPassword?: string; form?: string }>({})
   const [saving, setSaving] = useState(false)
 
   const handleSubmit = async (event: FormEvent) => {
@@ -70,12 +75,29 @@ function ContactInformation() {
     if (email && !isEmail(email)) next.email = 'Enter a valid email address'
     if (phone && !isPhone(phone)) next.phone = 'Enter an 11-digit phone number, e.g. 08012345678'
     if (!email && !phone) next.form = 'Enter a new email address or phone number'
+    if (!currentPassword) next.currentPassword = 'Enter your current password'
     setErrors(next)
     if (Object.keys(next).length) return
+
     setSaving(true)
-    // TODO: call the update-contact endpoint, which sends a verification code.
-    await new Promise((resolve) => setTimeout(resolve, 900))
-    navigate('/verify', { state: { email: email || mockUser.email, returnTo: '/profile?tab=contact' } })
+    const result = await api('/portal/auth/contact', {
+      body: { currentPassword, ...(email ? { email: email.trim().toLowerCase() } : {}), ...(phone ? { phone } : {}) },
+      auth: true,
+    })
+    setSaving(false)
+
+    if (result.ok) {
+      navigate('/verify', {
+        state: {
+          mode: 'contact',
+          maskedEmail: email ? maskEmail(email.trim().toLowerCase()) : undefined,
+          maskedPhone: phone ? maskPhone(phone) : undefined,
+        },
+      })
+      return
+    }
+    if (result.status === 401) return navigate('/login')
+    setErrors({ form: result.message })
   }
 
   return (
@@ -96,6 +118,11 @@ function ContactInformation() {
           <Field label="Phone number" error={errors.phone}>
             {({ id, describedBy, invalid }) => (
               <TextInput id={id} type="tel" inputMode="numeric" maxLength={11} autoComplete="tel" aria-describedby={describedBy} invalid={invalid} placeholder="080 1234 5678" value={phone} onValueChange={(value) => { setPhone(toPhoneDigits(value)); setErrors({}) }} />
+            )}
+          </Field>
+          <Field label="Current password" error={errors.currentPassword}>
+            {({ id, describedBy, invalid }) => (
+              <TextInput id={id} type="password" autoComplete="current-password" aria-describedby={describedBy} invalid={invalid} value={currentPassword} onValueChange={(value) => { setCurrentPassword(value); setErrors({}) }} />
             )}
           </Field>
         </div>
@@ -129,12 +156,24 @@ function PasswordSecurity() {
     setErrors(found)
     if (Object.keys(found).length) return
     setStatus('saving')
-    // TODO: call the change-password endpoint.
-    await new Promise((resolve) => setTimeout(resolve, 900))
-    setStatus('saved')
-    setCurrent('')
-    setNext('')
-    setConfirm('')
+    const result = await api<{ token: string }>('/portal/auth/change-password', {
+      body: { currentPassword: current, newPassword: next },
+      auth: true,
+    })
+    const session = getSession()
+
+    if (result.ok && result.payload?.token && session) {
+      setSession({ ...session, token: result.payload.token })
+      setStatus('saved')
+      setCurrent('')
+      setNext('')
+      setConfirm('')
+      return
+    }
+    setStatus('idle')
+    if (result.status === 401) return navigate('/login')
+    if (/current password/i.test(result.message)) setErrors({ current: result.message })
+    else setErrors({ next: result.message })
   }
 
   const clear = (key: keyof typeof errors) => {
@@ -179,7 +218,14 @@ function PasswordSecurity() {
             Your saved application progress will remain available.
           </p>
         </div>
-        <button type="button" onClick={() => navigate('/login')} className={cn(OUTLINE_BUTTON, 'gap-2')}>
+        <button
+          type="button"
+          onClick={() => {
+            clearSession()
+            navigate('/login')
+          }}
+          className={cn(OUTLINE_BUTTON, 'gap-2')}
+        >
           <LuLogOut className="size-5" />
           Log Out
         </button>
@@ -189,6 +235,7 @@ function PasswordSecurity() {
 }
 
 export default function Profile() {
+  const session = useSession()
   const [params, setParams] = useSearchParams()
   const active = (TABS.find((tab) => tab.id === params.get('tab'))?.id ?? 'details') as TabId
 
@@ -221,7 +268,7 @@ export default function Profile() {
         </div>
 
         <div key={active}>
-          {active === 'details' && <ProfileDetails />}
+          {active === 'details' && session && <ProfileDetails customer={session.customer} />}
           {active === 'contact' && <ContactInformation />}
           {active === 'security' && <PasswordSecurity />}
         </div>

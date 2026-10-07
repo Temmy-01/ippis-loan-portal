@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import iconBell from '@/assets/app/icon-bell.svg'
 import iconChevronDown from '@/assets/app/icon-chevron-down.svg'
-import { fullName, initials } from '@/data/mockUser'
+import { initialsOf, useSession } from '@/features/auth/session'
 import { useNotifications } from '@/features/notifications/store'
 import { cn } from '@/lib/cn'
 
@@ -16,7 +16,8 @@ type HeaderProps = {
 
 export function Header({ leading, onOpenMenu, onLogout }: HeaderProps) {
   const navigate = useNavigate()
-  const unread = useNotifications().filter((n) => !n.read).length
+  const customer = useSession()?.customer
+  const unread = useNotifications().filter((n) => !n.readAt).length
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -81,9 +82,9 @@ export function Header({ leading, onOpenMenu, onLogout }: HeaderProps) {
             className="flex min-h-[46px] items-center gap-[9px] rounded-full py-1 pr-1"
           >
             <span className="flex size-[38px] items-center justify-center rounded-[19px] bg-lilac-soft font-inter text-[13px] leading-[20.15px] font-bold text-lms-purple">
-              {initials}
+              {customer ? initialsOf(customer) : ''}
             </span>
-            <span className="hidden font-inter text-[16px] leading-[24.8px] text-app-ink sm:inline">{fullName}</span>
+            <span className="hidden font-inter text-[16px] leading-[24.8px] text-app-ink sm:inline">{customer?.fullName}</span>
             <img src={iconChevronDown} alt="" className={cn('block size-4 transition-transform duration-200', menuOpen && 'rotate-180')} />
           </button>
 

@@ -4,7 +4,7 @@ import { Field, SelectInput, TextInput } from '@/components/apply/FormField'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
 import { GENDERS, NIGERIAN_STATES } from '@/data/applicationOptions'
 import { required, useStepErrors } from '@/features/application/useStepErrors'
-import { isEmail, isPhone, toPhoneDigits } from '@/lib/validators'
+import { isEmail, isPhone } from '@/lib/validators'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 
@@ -57,14 +57,14 @@ export default function PersonalStep() {
               <SelectInput id={id} aria-describedby={describedBy} invalid={invalid} placeholder="Select" options={GENDERS} value={gender.value} onValueChange={gender.onValueChange} />
             )}
           </Field>
-          <Field label="Phone number" error={phone.error}>
+          <Field label="Phone number" hint="To change this, update your Contact Information in My Profile." error={phone.error}>
             {({ id, describedBy, invalid }) => (
-              <TextInput id={id} type="tel" inputMode="numeric" maxLength={11} aria-describedby={describedBy} invalid={invalid} autoComplete="tel" placeholder="080 1234 5678" value={phone.value} onValueChange={(value) => phone.onValueChange(toPhoneDigits(value))} />
+              <TextInput id={id} type="tel" locked aria-describedby={describedBy} invalid={invalid} value={phone.value} onValueChange={() => {}} />
             )}
           </Field>
-          <Field label="Email address" error={email.error}>
+          <Field label="Email address" hint="To change this, update your Contact Information in My Profile." error={email.error}>
             {({ id, describedBy, invalid }) => (
-              <TextInput id={id} type="email" aria-describedby={describedBy} invalid={invalid} autoComplete="email" placeholder="ada@example.com" value={email.value} onValueChange={email.onValueChange} />
+              <TextInput id={id} type="email" locked aria-describedby={describedBy} invalid={invalid} value={email.value} onValueChange={() => {}} />
             )}
           </Field>
           <Field label="State of residence" error={state.error}>

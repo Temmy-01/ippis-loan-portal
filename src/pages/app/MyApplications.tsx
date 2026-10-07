@@ -3,9 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import illusDocument from '@/assets/app/illus-document.svg'
 import { PageHeader } from '@/components/app/PageHeader'
+import { StatusPill } from '@/components/app/StatusPill'
 import { PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { getLoanPackage } from '@/data/loanPackages'
-import { mockApplication } from '@/data/mockUser'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { getProgress } from '@/features/application/progress'
 import { cn } from '@/lib/cn'
@@ -22,7 +22,9 @@ export default function MyApplications() {
     { label: 'Requested Loan Amount', value: data.amount ? formatNaira(data.amount) : 'Not set yet' },
     { label: 'Date Started', value: data.startedAt ? formatDate(data.startedAt.slice(0, 10)) : '' },
     { label: 'Last Updated', value: data.updatedAt ? formatDate(data.updatedAt.slice(0, 10)) : '' },
-    { label: 'Completion', value: `${progress.percent}%` },
+    progress.submitted
+      ? { label: 'Status', value: data.summary?.label ?? 'Submitted' }
+      : { label: 'Completion', value: `${progress.percent}%` },
   ]
 
   return (
@@ -47,19 +49,15 @@ export default function MyApplications() {
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex flex-col gap-[7px]">
-              <span
-                className={cn(
-                  'flex min-h-7 items-center gap-[7px] self-start rounded-[20px] px-2.5 py-1',
-                  progress.submitted ? 'bg-sky-soft text-sky-ink' : 'bg-amber-soft text-amber',
-                )}
-              >
-                <span className={cn('size-[7px] rounded-full', progress.submitted ? 'bg-sky-ink' : 'bg-amber')} />
-                <span className="font-inter text-[12px] leading-[18.6px] font-bold">{progress.submitted ? 'Submitted' : 'Draft'}</span>
-              </span>
+              {progress.submitted ? (
+                <StatusPill tone={data.summary?.tone ?? 'progress'} label={data.summary?.label ?? 'Submitted'} />
+              ) : (
+                <StatusPill tone="warning" label="Draft" />
+              )}
               <h2 className="pt-1.5 font-inter text-[22px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink sm:text-[24px]">
                 {getLoanPackage(data.loanPackage).shortName} Application
               </h2>
-              <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">Application ID: {mockApplication.id}</p>
+              <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">Application ID: {data.reference}</p>
             </div>
             <Link to={progress.nextStepPath} className={PRIMARY_BUTTON}>
               {progress.submitted ? 'Track Application' : 'Continue Application'}

@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 
 import iconSubmittedCheck from '@/assets/apply/icon-submitted-check.svg'
 import infoNext from '@/assets/apply/info-next.svg'
+import { StatusPill } from '@/components/app/StatusPill'
 import { OUTLINE_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { InfoBox } from '@/components/apply/InfoBox'
-import { mockApplication } from '@/data/mockUser'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { formatDateTime } from '@/lib/format'
 
@@ -41,7 +41,7 @@ export default function Submitted() {
         >
           <div className="flex flex-col gap-1">
             <dt className="font-inter text-[12px] leading-[18.6px] text-app-muted">Application ID</dt>
-            <dd className="font-inter text-[16px] leading-[24.8px] font-bold text-app-ink">{mockApplication.id}</dd>
+            <dd className="font-inter text-[16px] leading-[24.8px] font-bold text-app-ink">{data.reference}</dd>
           </div>
           <div className="flex flex-col gap-1">
             <dt className="font-inter text-[12px] leading-[18.6px] text-app-muted">Submitted</dt>
@@ -49,9 +49,8 @@ export default function Submitted() {
           </div>
           <div className="flex flex-col gap-1">
             <dt className="font-inter text-[12px] leading-[18.6px] text-app-muted">Current status</dt>
-            <dd className="flex min-h-7 items-center gap-[7px] rounded-[20px] bg-sky-soft px-2.5 py-1">
-              <span className="size-[7px] rounded-full bg-app-muted" />
-              <span className="font-inter text-[12px] leading-[18.6px] font-bold text-app-muted">Submitted</span>
+            <dd>
+              <StatusPill tone={data.summary?.tone ?? 'progress'} label={data.summary?.label ?? 'Submitted'} pulse />
             </dd>
           </div>
         </dl>
