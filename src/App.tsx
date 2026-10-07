@@ -4,7 +4,6 @@ import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ApplicationProvider } from '@/features/application/ApplicationProvider'
 import ApplicationHistory from '@/pages/app/ApplicationHistory'
-import ApplicationTimeline from '@/pages/app/ApplicationTimeline'
 import Dashboard from '@/pages/app/Dashboard'
 import Notifications from '@/pages/app/Notifications'
 import Profile from '@/pages/app/Profile'
@@ -45,7 +44,6 @@ export default function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/applications" element={<MyApplications />} />
             <Route path="/history" element={<ApplicationHistory />} />
-            <Route path="/history/:id" element={<ApplicationTimeline />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
           </Route>
 

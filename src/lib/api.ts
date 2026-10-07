@@ -1,6 +1,6 @@
 import { clearSession, getSession } from '@/features/auth/session'
 
-export const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8522/dominion/api/v2'
+export const API_BASE_URL: string = (import.meta.env.VITE_API_URL ?? 'http://localhost:8522/dominion/api/v2').replace(/\/+$/, '')
 
 export type ApiResult<T> = {
   ok: boolean
