@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useId, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 
 import iconCursor from '@/assets/auth/icon-cursor.svg'
@@ -9,6 +9,7 @@ import { AuthBackground } from '@/components/auth/AuthBackground'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Logo } from '@/components/ui/Logo'
+import { Modal } from '@/components/ui/Modal'
 import { TextField } from '@/components/ui/TextField'
 import { useSession } from '@/features/auth/session'
 import { api } from '@/lib/api'
@@ -44,6 +45,33 @@ const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
 const STRONG_PASSWORD = /^(?=.*\d)(?=.*[^A-Za-z\d]).{8,72}$/
 
+const POLICIES = {
+  terms: 'Terms and Conditions',
+  privacy: 'Privacy Policy',
+} as const
+
+type Policy = keyof typeof POLICIES
+
+function PolicyModal({ policy, onClose }: { policy: Policy | null; onClose: () => void }) {
+  const titleId = useId()
+  return (
+    <Modal open={policy !== null} onClose={onClose} labelledBy={titleId}>
+      <div className="flex max-h-[80dvh] flex-col gap-5 p-6 sm:p-8">
+        <h2 id={titleId} className="font-poppins text-[22px] leading-[30px] font-semibold text-ink">
+          {policy ? POLICIES[policy] : ''}
+        </h2>
+        <div className="overflow-y-auto font-poppins text-[14px] leading-[22px] text-ink-muted">
+          <p>The full {policy ? POLICIES[policy] : ''} will be published here soon.</p>
+          <p className="mt-3">If you have any questions before then, call us on 800 1301 448.</p>
+        </div>
+        <Button type="button" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </Modal>
+  )
+}
+
 export default function SignUp() {
   const navigate = useNavigate()
   const session = useSession()
@@ -55,7 +83,14 @@ export default function SignUp() {
     password: '',
     confirmPassword: '',
   })
-  const [agreed, setAgreed] = useState(true)
+  const [agreed, setAgreed] = useState(false)
+  const [policy, setPolicy] = useState<Policy | null>(null)
+
+  const openPolicy = (name: Policy) => (event: MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setPolicy(name)
+  }
   const [errors, setErrors] = useState<Errors>({})
   const [submitting, setSubmitting] = useState(false)
 
@@ -86,6 +121,7 @@ export default function SignUp() {
         phone: form.phone,
         password: form.password,
         confirmPassword: form.confirmPassword,
+        acceptTerms: agreed,
       },
     })
     setSubmitting(false)
@@ -230,41 +266,42 @@ export default function SignUp() {
                     {formError}
                   </p>
                 )}
-                <Button type="submit" loading={submitting}>
+                <div>
+                  <Checkbox
+                    checked={agreed}
+                    onChange={(checked) => {
+                      setAgreed(checked)
+                      if (checked) setErrors((prev) => ({ ...prev, terms: undefined }))
+                    }}
+                    error={Boolean(errors.terms)}
+                  >
+                    <span className="font-poppins text-[12px] leading-[17px] text-ink-muted">
+                      I agree to the{' '}
+                      <button type="button" onClick={openPolicy('terms')} className="font-semibold text-lms-purple hover:underline">
+                        Terms and Conditions
+                      </button>{' '}
+                      and{' '}
+                      <button type="button" onClick={openPolicy('privacy')} className="font-semibold text-lms-purple hover:underline">
+                        Privacy Policy
+                      </button>
+                      .
+                    </span>
+                  </Checkbox>
+                  {errors.terms && (
+                    <p role="alert" className="anim-fade-in mt-1 font-poppins text-[12px] text-danger">
+                      {errors.terms}
+                    </p>
+                  )}
+                </div>
+                <Button type="submit" loading={submitting} disabled={!agreed}>
                   Sign Up
                 </Button>
-              </div>
-
-              <div>
-                <Checkbox
-                  checked={agreed}
-                  onChange={(checked) => {
-                    setAgreed(checked)
-                    if (checked) setErrors((prev) => ({ ...prev, terms: undefined }))
-                  }}
-                  error={Boolean(errors.terms)}
-                >
-                  <span className="font-poppins text-[12px] leading-[17px] text-ink-muted">
-                    I agree to the{' '}
-                    <a href="#" className="font-semibold text-lms-purple hover:underline">
-                      Terms and Conditions
-                    </a>{' '}
-                    and{' '}
-                    <a href="#" className="font-semibold text-lms-purple hover:underline">
-                      Privacy Policy.
-                    </a>
-                  </span>
-                </Checkbox>
-                {errors.terms && (
-                  <p role="alert" className="anim-fade-in mt-1 font-poppins text-[12px] text-danger">
-                    {errors.terms}
-                  </p>
-                )}
               </div>
             </form>
           </section>
         </div>
       </main>
+      <PolicyModal policy={policy} onClose={() => setPolicy(null)} />
     </>
   )
 }

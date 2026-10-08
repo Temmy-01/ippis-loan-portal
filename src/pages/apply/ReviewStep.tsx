@@ -110,9 +110,9 @@ export default function ReviewStep() {
           step="loan"
           delay={240}
           items={[
-            { label: 'Requested Loan Amount', value: formatNaira(data.amount) },
+            { label: 'How much do you need', value: formatNaira(data.amount) },
             { label: 'Purpose', value: data.purpose },
-            { label: 'Repayment period', value: data.repaymentPeriod, fallback: 'To be confirmed in an approved offer' },
+            { label: 'Loan Tenor', value: data.repaymentPeriod, fallback: 'To be confirmed in an approved offer' },
           ]}
         />
         <Section

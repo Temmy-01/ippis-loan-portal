@@ -24,8 +24,6 @@ export const REPAYMENT_PERIODS = ['3 months', '6 months', '9 months', '12 months
 export const UPLOAD_SLOTS = [
   { slot: 'workId', label: 'Work ID Card', required: true, accept: 'image/*,application/pdf', hint: 'Image or PDF' },
   { slot: 'passport', label: 'Passport Photograph', required: true, accept: 'image/*', hint: 'Image only' },
-  { slot: 'signature', label: 'Signature', required: true, accept: 'image/*', hint: 'Image only' },
-  { slot: 'other', label: 'Other Documents', required: false, accept: 'image/*,application/pdf', hint: 'Image or PDF' },
 ] as const
 
 export const REQUIRED_UPLOADS = UPLOAD_SLOTS.filter((item) => item.required).map((item) => item.slot)

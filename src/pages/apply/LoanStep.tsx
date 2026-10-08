@@ -24,7 +24,7 @@ export default function LoanStep() {
     <StepPage index={3} onContinue={() => validate() && navigate('/apply/documents')}>
       <StepCard>
         <div className="grid grid-cols-1 items-start gap-5 pb-5 md:grid-cols-2">
-          <Field label="Requested loan amount" hint={amount.error ? undefined : 'Enter the amount you would like to request'} error={amount.error}>
+          <Field label="How much do you need" hint={amount.error ? undefined : 'Enter the amount you would like to request'} error={amount.error}>
             {({ id, describedBy, invalid }) => (
               <TextInput
                 id={id}
@@ -42,7 +42,7 @@ export default function LoanStep() {
               <SelectInput id={id} aria-describedby={describedBy} invalid={invalid} placeholder="Select a purpose" options={LOAN_PURPOSES} value={purpose.value} onValueChange={purpose.onValueChange} />
             )}
           </Field>
-          <Field label="Preferred repayment period (if supported)">
+          <Field label="Loan Tenor">
             {({ id, describedBy }) => (
               <SelectInput id={id} aria-describedby={describedBy} placeholder="Select available period" options={REPAYMENT_PERIODS} value={period.value} onValueChange={period.onValueChange} />
             )}

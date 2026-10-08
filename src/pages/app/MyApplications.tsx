@@ -19,7 +19,7 @@ export default function MyApplications() {
   const progress = getProgress(data)
 
   const details = [
-    { label: 'Requested Loan Amount', value: data.amount ? formatNaira(data.amount) : 'Not set yet' },
+    { label: 'How much do you need', value: data.amount ? formatNaira(data.amount) : 'Not set yet' },
     { label: 'Date Started', value: data.startedAt ? formatDate(data.startedAt.slice(0, 10)) : '' },
     { label: 'Last Updated', value: data.updatedAt ? formatDate(data.updatedAt.slice(0, 10)) : '' },
     progress.submitted

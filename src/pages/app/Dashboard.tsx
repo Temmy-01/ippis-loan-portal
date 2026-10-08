@@ -57,8 +57,8 @@ export default function Dashboard() {
         title={`Welcome back, ${customer ? firstNameOf(customer).toUpperCase() : ''}`}
         description={
           progress.started
-            ? "Here's the latest on your IPPIS Loan Application."
-            : 'Start your IPPIS loan application whenever you\'re ready.'
+            ? "Here's the latest on your Loan Application."
+            : 'Start your loan application whenever you\'re ready.'
         }
       />
 

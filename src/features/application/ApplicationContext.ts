@@ -6,7 +6,7 @@ import type { ApplicationStatus, StatusSummary } from './status'
 
 export type UploadedDocument = { name: string; size: number }
 
-export type UploadSlot = 'workId' | 'passport' | 'signature' | 'other'
+export type UploadSlot = 'workId' | 'passport'
 
 export type IdentityState = { status: 'required' | 'verified' | 'locked'; attemptsLeft: number }
 
