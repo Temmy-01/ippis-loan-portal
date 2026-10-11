@@ -151,7 +151,7 @@ export default function SignUp() {
                 className="anim-fade-up font-poppins text-[34px] leading-[44px] font-semibold text-lms-dark-purple sm:text-[48px] sm:leading-[58px]"
                 style={delay(180)}
               >
-                Apply for Your IPPIS Loan, Easily.
+                Apply for Your Loan, Easily.
               </h1>
               <p className="anim-fade-up font-poppins text-[16px] leading-6 text-ink" style={delay(260)}>
                 Complete your loan application securely, at your own pace. Save your progress and return whenever

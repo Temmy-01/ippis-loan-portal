@@ -82,7 +82,7 @@ export function Sidebar({ onNavigate, onLogout }: SidebarProps) {
         />
         <div className="relative font-poppins text-[11.515px] leading-[1.3] text-lms-dark-purple">
           <p className="font-semibold">Need help with your application?</p>
-          <p className="mt-[1.3em]">Get guidance and support throughout your IPPIS loan application.</p>
+          <p className="mt-[1.3em]">Get guidance and support throughout your loan application.</p>
         </div>
         <a
           href="tel:8001301448"

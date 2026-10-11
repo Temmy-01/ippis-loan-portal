@@ -3,11 +3,11 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { clearSession, firstNameOf, useSession } from '@/features/auth/session'
+import { clearSession, firstNameOf, greetingOf, useSession } from '@/features/auth/session'
 import { useNotificationSync } from '@/features/notifications/store'
 import { cn } from '@/lib/cn'
 
-const GREETING_ROUTES = ['/verify-identity', '/notifications']
+const GREETING_ROUTES = ['/notifications']
 
 export function AppLayout() {
   const navigate = useNavigate()
@@ -19,7 +19,8 @@ export function AppLayout() {
     document.body.style.backgroundColor = '#f8f7fa'
   }, [])
 
-  const customer = useSession()?.customer
+  const session = useSession()
+  const customer = session?.customer
 
   const logout = () => {
     clearSession()
@@ -53,7 +54,7 @@ export function AppLayout() {
           leading={
             GREETING_ROUTES.includes(pathname) ? (
               <p className="truncate font-inter text-[16px] leading-[24.8px] text-app-muted">
-                Welcome back, <strong className="font-bold text-app-ink">{customer ? firstNameOf(customer) : ''}</strong>
+                {greetingOf(session)}, <strong className="font-bold text-app-ink">{customer ? firstNameOf(customer) : ''}</strong>
               </p>
             ) : undefined
           }

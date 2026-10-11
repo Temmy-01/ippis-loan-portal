@@ -8,7 +8,7 @@ export type Customer = {
   customerSince: string
 }
 
-export type Session = { token: string; customer: Customer }
+export type Session = { token: string; customer: Customer; returning?: boolean }
 
 const STORAGE_KEY = 'portal-session'
 
@@ -48,6 +48,8 @@ export const useSession = () =>
   )
 
 export const firstNameOf = (customer: Customer) => customer.fullName.trim().split(/\s+/)[0]
+
+export const greetingOf = (session: Session | null) => (session?.returning ? 'Welcome back' : 'Welcome')
 
 export const initialsOf = (customer: Customer) =>
   customer.fullName

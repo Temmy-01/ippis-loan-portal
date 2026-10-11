@@ -11,8 +11,8 @@ export type LoanPackage = {
 export const LOAN_PACKAGES: LoanPackage[] = [
   {
     id: 'ippis',
-    name: 'Public Sector-IPPIS Loan',
-    shortName: 'IPPIS Loan',
+    name: 'Public Sector Loan',
+    shortName: 'Public Sctor Loan',
     description: 'Designed for eligible public-sector employees receiving salaries through IPPIS.',
     available: true,
   },

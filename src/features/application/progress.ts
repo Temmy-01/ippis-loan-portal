@@ -12,6 +12,7 @@ export function getProgress(data: ApplicationData) {
     filled(data.ippisNumber),
     filled(data.amount, data.purpose),
     REQUIRED_UPLOADS.every((slot) => data.uploads[slot]),
+    Boolean(data.uploads.face),
     Boolean(data.submittedAt),
   ]
   const completedSteps = done.filter(Boolean).length
@@ -24,7 +25,7 @@ export function getProgress(data: ApplicationData) {
     completedSteps,
     totalSteps: APPLICATION_STEPS.length,
     percent: Math.round((completedSteps / APPLICATION_STEPS.length) * 100),
-    detailsComplete: done.slice(0, 5).every(Boolean),
+    detailsComplete: done.slice(0, 6).every(Boolean),
     nextStepLabel: nextStep?.label ?? 'Track your application',
     nextStepPath: nextStep ? `/apply/${nextStep.slug}` : '/track',
   }

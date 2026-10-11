@@ -9,10 +9,10 @@ import illusDocument from '@/assets/app/illus-document.svg'
 import { PageHeader } from '@/components/app/PageHeader'
 import { StatusPill } from '@/components/app/StatusPill'
 import { PrototypeFlows } from '@/components/app/PrototypeFlows'
-import { firstNameOf, useSession } from '@/features/auth/session'
+import { firstNameOf, greetingOf, useSession } from '@/features/auth/session'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { getProgress } from '@/features/application/progress'
-import { STATUS_MESSAGES, STATUS_TITLES, TRACK_STAGE_COUNT, VERIFY_MESSAGE, VERIFY_TITLE } from '@/features/application/status'
+import { STATUS_MESSAGES, STATUS_TITLES, TRACK_STAGE_COUNT } from '@/features/application/status'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format'
 
@@ -25,11 +25,11 @@ const SECONDARY_LINK =
 
 export default function Dashboard() {
   const { data } = useApplication()
-  const customer = useSession()?.customer
+  const session = useSession()
+  const customer = session?.customer
   const progress = getProgress(data)
   const live = progress.submitted && data.status && data.status !== 'draft' ? data.status : null
   const summary = data.summary ?? { label: 'Submitted', tone: 'progress' as const, step: 2 }
-  const verify = summary.action === 'verify_identity'
   const percent = live ? Math.round((summary.step / TRACK_STAGE_COUNT) * 100) : progress.percent
 
   const journey = [
@@ -54,7 +54,7 @@ export default function Dashboard() {
     <div className="flex flex-col gap-[18px]">
       <PageHeader
         eyebrow="Customer Dashboard"
-        title={`Welcome back, ${customer ? firstNameOf(customer).toUpperCase() : ''}`}
+        title={`${greetingOf(session)}, ${customer ? firstNameOf(customer).toUpperCase() : ''}`}
         description={
           progress.started
             ? "Here's the latest on your Loan Application."
@@ -92,13 +92,11 @@ export default function Dashboard() {
                 <StatusPill tone="warning" label="Action Required" pulse />
               )}
               <h2 className="pt-[6.25px] font-inter text-[22px] leading-[31.2px] font-bold tracking-[-0.5px] text-app-ink sm:text-[24px]">
-                {verify ? VERIFY_TITLE : live ? STATUS_TITLES[live] : 'Continue your application'}
+                {live ? STATUS_TITLES[live] : 'Continue your application'}
               </h2>
               <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">
-                {verify
-                  ? VERIFY_MESSAGE
-                  : live
-                    ? STATUS_MESSAGES[live]
+                {live
+                  ? STATUS_MESSAGES[live]
                   : `You've completed ${progress.completedSteps} of ${progress.totalSteps} steps. Your details are saved and waiting for you.`}
               </p>
 
@@ -127,8 +125,8 @@ export default function Dashboard() {
               </dl>
 
               <div className="flex flex-wrap items-center gap-3 pt-[19px]">
-                <Link to={verify ? '/verify-identity' : progress.nextStepPath} className={PRIMARY_LINK}>
-                  {verify ? 'Verify My Identity' : progress.submitted ? 'Track My Application' : 'Continue Where You Left Off'}
+                <Link to={progress.nextStepPath} className={PRIMARY_LINK}>
+                  {progress.submitted ? 'Track My Application' : 'Continue Where You Left Off'}
                   <img src={iconChevronRight} alt="" className="block size-5 transition-transform duration-200 group-hover:translate-x-1" />
                 </Link>
                 <Link to="/applications" className={SECONDARY_LINK}>

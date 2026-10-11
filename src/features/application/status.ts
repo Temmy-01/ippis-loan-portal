@@ -11,7 +11,7 @@ export type ApplicationStatus =
 
 export type StatusTone = 'progress' | 'success' | 'negative' | 'warning'
 
-export type StatusSummary = { label: string; tone: StatusTone; step: number; action?: 'verify_identity' | null }
+export type StatusSummary = { label: string; tone: StatusTone; step: number }
 
 export const TONE_STYLES: Record<StatusTone, { pill: string; dot: string }> = {
   progress: { pill: 'bg-sky-soft text-sky-ink', dot: 'bg-sky-ink' },
@@ -42,11 +42,10 @@ export const STATUS_TITLES: Record<Exclude<ApplicationStatus, 'draft'>, string> 
   disbursement_delayed: 'Your disbursement is delayed',
 }
 
-export const VERIFY_TITLE = 'Verify your identity'
-
-export const VERIFY_MESSAGE =
-  'Our loan team has started on your application. Complete a quick face check so we can continue.'
-
 export const TRACK_STAGE_COUNT = 8
+
+export const FINISHED_STATUSES: ApplicationStatus[] = ['disbursed', 'declined', 'closed']
+
+export const isFinished = (status: ApplicationStatus | null) => Boolean(status && FINISHED_STATUSES.includes(status))
 
 export const isSubmitted = (status: ApplicationStatus | null) => Boolean(status && status !== 'draft')

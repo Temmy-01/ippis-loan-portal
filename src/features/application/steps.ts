@@ -14,8 +14,8 @@ export const APPLICATION_STEPS = [
   {
     slug: 'ippis',
     label: 'IPPIS Information',
-    title: 'Your IPPIS details',
-    description: 'Enter your IPPIS information carefully to help us process your application.',
+    title: 'Your details',
+    description: 'Enter your information carefully to help us process your application.',
   },
   {
     slug: 'loan',
@@ -29,6 +29,12 @@ export const APPLICATION_STEPS = [
     title: 'Upload your supporting documents',
     description:
       'Please upload the documents requested for your application. Make sure each file is clear and readable.',
+  },
+  {
+    slug: 'face',
+    label: 'Face Check',
+    title: "Let's confirm it's really you",
+    description: 'A quick live face check with your camera. Your photo is saved with your application for our loan team.',
   },
   {
     slug: 'review',

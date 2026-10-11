@@ -12,11 +12,9 @@ import {
   type FormField,
   type SaveStatus,
   type SubmitResult,
-  type IdentityState,
   type UploadSlot,
-  type VerifyResult,
 } from './ApplicationContext'
-import type { ApplicationStatus, StatusSummary } from './status'
+import { isFinished, type ApplicationStatus, type StatusSummary } from './status'
 
 type ServerApplication = {
   id: string
@@ -24,7 +22,6 @@ type ServerApplication = {
   loanPackage: LoanPackageId
   status: ApplicationStatus
   summary: StatusSummary | null
-  identity: IdentityState | null
   data: Partial<Record<FormField, string>>
   consent: boolean
   documents: Array<{ slot: UploadSlot; fileName: string; size: number }>
@@ -42,7 +39,6 @@ const fromServer = (app: ServerApplication): ApplicationData => ({
   reference: app.reference,
   status: app.status,
   summary: app.summary,
-  identity: app.identity ?? null,
   loanPackage: app.loanPackage,
   consent: app.consent,
   uploads: Object.fromEntries(app.documents.map((doc) => [doc.slot, { name: doc.fileName, size: doc.size }])),
@@ -79,7 +75,7 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
       api<ServerApplication[]>('/portal/applications', { auth: true }).then((result) => {
         if (cancelled || dirty.current) return
         const list = result.payload ?? []
-        const current = list.find((app) => app.status === 'draft') ?? list[0]
+        const current = list.find((app) => app.status === 'draft') ?? list.find((app) => !isFinished(app.status)) ?? list[0]
         if (current) setData(fromServer(current))
         setLoading(false)
       })
@@ -209,23 +205,9 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
     return { ok: false, message: result.message, step: result.payload?.step }
   }, [flush])
 
-  const verifyIdentity = useCallback(async (image: string): Promise<VerifyResult> => {
-    const id = latest.current.id
-    if (!id) return { ok: false, message: "We couldn't find your application." }
-
-    const result = await api<{ attemptsLeft?: number }>(`/portal/applications/${id}/verify-identity`, {
-      method: 'POST',
-      auth: true,
-      body: { image },
-    })
-    const fresh = await api<ServerApplication>(`/portal/applications/${id}`, { auth: true })
-    if (fresh.ok && fresh.payload) setData(fromServer(fresh.payload))
-    return { ok: result.ok, message: result.message, attemptsLeft: result.payload?.attemptsLeft }
-  }, [])
-
   const value = useMemo(
-    () => ({ data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit, verifyIdentity }),
-    [data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit, verifyIdentity],
+    () => ({ data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit }),
+    [data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit],
   )
 
   return <ApplicationContext.Provider value={value}>{children}</ApplicationContext.Provider>

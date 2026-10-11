@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/app/PageHeader'
 import { LINK_BUTTON, OUTLINE_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { getLoanPackage } from '@/data/loanPackages'
 import { useApplication } from '@/features/application/ApplicationContext'
-import { isSubmitted, STATUS_MESSAGES, VERIFY_MESSAGE, type StatusTone } from '@/features/application/status'
+import { isSubmitted, STATUS_MESSAGES, type StatusTone } from '@/features/application/status'
 import { useTimeline } from '@/features/application/useTimeline'
 import { cn } from '@/lib/cn'
 import { formatDateTime, formatNaira } from '@/lib/format'
@@ -65,16 +65,8 @@ export default function TrackApplication() {
                 Current Status: {summary?.label ?? 'Submitted'}
               </h2>
               <p className="mt-2 max-w-[720px] font-inter text-[16px] leading-[25px] text-white/80">
-                {summary?.action === 'verify_identity' ? VERIFY_MESSAGE : status && status !== 'draft' ? STATUS_MESSAGES[status] : ''}
+                {status && status !== 'draft' ? STATUS_MESSAGES[status] : ''}
               </p>
-              {summary?.action === 'verify_identity' && (
-                <Link
-                  to="/verify-identity"
-                  className="mt-5 inline-flex min-h-[46px] items-center rounded-[10px] bg-white px-5 font-inter text-[16px] font-bold text-lms-purple transition-transform hover:-translate-y-px"
-                >
-                  Verify My Identity
-                </Link>
-              )}
               {error && <p className="mt-2 font-inter text-[14px] text-white/80">{error}</p>}
               <dl className="mt-7 grid grid-cols-2 gap-5 border-t border-white/10 pt-7 lg:grid-cols-4">
                 {details.map(({ label, value }) => (

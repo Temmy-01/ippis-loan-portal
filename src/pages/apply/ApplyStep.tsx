@@ -5,6 +5,7 @@ import { isSubmitted } from '@/features/application/status'
 
 import DocumentsStep from './DocumentsStep'
 import EmploymentStep from './EmploymentStep'
+import FaceStep from './FaceStep'
 import IppisStep from './IppisStep'
 import LoanStep from './LoanStep'
 import PersonalStep from './PersonalStep'
@@ -16,6 +17,7 @@ const STEP_SCREENS = {
   ippis: IppisStep,
   loan: LoanStep,
   documents: DocumentsStep,
+  face: FaceStep,
   review: ReviewStep,
 }
 

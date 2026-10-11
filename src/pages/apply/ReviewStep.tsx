@@ -77,7 +77,7 @@ export default function ReviewStep() {
   }
 
   return (
-    <StepPage index={5} onContinue={handleSubmit} submit={{ label: 'Submit Application', enabled: data.consent, loading: submitting }}>
+    <StepPage index={6} onContinue={handleSubmit} submit={{ label: 'Submit Application', enabled: data.consent, loading: submitting }}>
       <div className="flex flex-col gap-[14px] pt-4">
         <Section
           title="Personal Information"
@@ -102,7 +102,7 @@ export default function ReviewStep() {
           step="ippis"
           delay={180}
           items={[
-            { label: 'IPPIS number', value: maskNumber(data.ippisNumber) },
+            { label: 'Staff Identity number', value: maskNumber(data.ippisNumber) },
           ]}
         />
         <Section
@@ -126,6 +126,12 @@ export default function ReviewStep() {
               fallback: required ? undefined : 'None',
             })),
           ]}
+        />
+        <Section
+          title="Face Check"
+          step="face"
+          delay={340}
+          items={[{ label: 'Live face check', value: data.uploads.face ? 'Completed' : '' }]}
         />
       </div>
 

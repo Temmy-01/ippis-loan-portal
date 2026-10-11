@@ -14,7 +14,7 @@ type Errors = Partial<Record<'email' | 'password', string>>
 
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
-type LoginReply = { token?: string; customer?: Customer; needsVerification?: boolean; email?: string }
+type LoginReply = { token?: string; customer?: Customer; needsVerification?: boolean; email?: string; returning?: boolean }
 
 export default function Login() {
   const navigate = useNavigate()
@@ -42,7 +42,7 @@ export default function Login() {
     setSubmitting(false)
 
     if (result.ok && result.payload?.token && result.payload.customer) {
-      setSession({ token: result.payload.token, customer: result.payload.customer })
+      setSession({ token: result.payload.token, customer: result.payload.customer, returning: result.payload.returning })
       const from = (location.state as { from?: string } | null)?.from
       navigate(from ?? '/dashboard', { replace: true })
       return

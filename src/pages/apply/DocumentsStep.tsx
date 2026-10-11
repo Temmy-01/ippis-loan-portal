@@ -152,7 +152,7 @@ export default function DocumentsStep() {
       if (!data.uploads[slot]) missing[slot] = `Upload your ${UPLOAD_SLOTS.find((item) => item.slot === slot)?.label}`
     }
     setErrors(missing)
-    if (Object.keys(missing).length === 0) navigate('/apply/review')
+    if (Object.keys(missing).length === 0) navigate('/apply/face')
   }
 
   return (
@@ -160,8 +160,7 @@ export default function DocumentsStep() {
       <StepCard>
         <div className="flex flex-col gap-5">
           <InfoBox icon={infoDocuments} iconWidth={19.07}>
-            Work ID Card, Passport Photograph and Signature are required. Other Documents is optional. Make sure each
-            file is clear and readable.
+            Work ID Card and Passport Photograph are required. Make sure each file is clear and readable.
           </InfoBox>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {UPLOAD_SLOTS.map((config) => (

@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 
-const FLOWS = [
-  { label: 'Verification', to: '/verify-identity' },
+const FLOWS: { label: string; to?: string }[] = [
   { label: 'Decision' },
   { label: 'Offer' },
   { label: 'Disbursement' },

@@ -39,7 +39,7 @@ export default function GetStarted() {
           className="anim-fade-up font-inter text-[28px] leading-[36px] font-bold tracking-[-1.2px] text-app-ink sm:text-[36px] sm:leading-[43.2px]"
           style={delay(80)}
         >
-          Let's get started with your IPPIS loan
+          Let's get started with your loan
         </h1>
         <p
           className="anim-fade-up max-w-[700px] pt-2 font-inter text-[16px] leading-[26.35px] text-app-muted sm:text-[17px]"

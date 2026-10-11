@@ -6,9 +6,7 @@ import type { ApplicationStatus, StatusSummary } from './status'
 
 export type UploadedDocument = { name: string; size: number }
 
-export type UploadSlot = 'workId' | 'passport'
-
-export type IdentityState = { status: 'required' | 'verified' | 'locked'; attemptsLeft: number }
+export type UploadSlot = 'workId' | 'passport' | 'face'
 
 export const FORM_FIELDS = [
   'fullName',
@@ -32,7 +30,6 @@ export type ApplicationData = Record<FormField, string> & {
   reference: string | null
   status: ApplicationStatus | null
   summary: StatusSummary | null
-  identity: IdentityState | null
   loanPackage: LoanPackageId | null
   uploads: Partial<Record<UploadSlot, UploadedDocument>>
   consent: boolean
@@ -58,7 +55,6 @@ export const EMPTY_APPLICATION: ApplicationData = {
   reference: null,
   status: null,
   summary: null,
-  identity: null,
   loanPackage: null,
   uploads: {},
   consent: false,
@@ -71,8 +67,6 @@ export type SaveStatus = 'saved' | 'saving' | 'error'
 
 export type SubmitResult = { ok: boolean; message: string; step?: string }
 
-export type VerifyResult = { ok: boolean; message: string; attemptsLeft?: number }
-
 type ApplicationContextValue = {
   data: ApplicationData
   loading: boolean
@@ -83,7 +77,6 @@ type ApplicationContextValue = {
   removeDocument: (slot: UploadSlot) => Promise<string | null>
   flush: () => Promise<boolean>
   submit: () => Promise<SubmitResult>
-  verifyIdentity: (image: string) => Promise<VerifyResult>
 }
 
 export const ApplicationContext = createContext<ApplicationContextValue | null>(null)

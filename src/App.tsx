@@ -4,12 +4,12 @@ import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { ApplicationProvider } from '@/features/application/ApplicationProvider'
 import ApplicationHistory from '@/pages/app/ApplicationHistory'
+import CompletedApplication from '@/pages/app/CompletedApplication'
 import Dashboard from '@/pages/app/Dashboard'
 import Notifications from '@/pages/app/Notifications'
 import Profile from '@/pages/app/Profile'
 import TrackApplication from '@/pages/app/TrackApplication'
 import MyApplications from '@/pages/app/MyApplications'
-import VerifyIdentity from '@/pages/app/VerifyIdentity'
 import ApplyStep from '@/pages/apply/ApplyStep'
 import GetStarted from '@/pages/apply/GetStarted'
 import LoanPackages from '@/pages/apply/LoanPackages'
@@ -35,7 +35,7 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/verify-identity" element={<VerifyIdentity />} />
+            <Route path="/verify-identity" element={<Navigate to="/dashboard" replace />} />
             <Route path="/loan-packages" element={<LoanPackages />} />
             <Route path="/apply" element={<GetStarted />} />
             <Route path="/application-submitted" element={<Submitted />} />
@@ -43,6 +43,7 @@ export default function App() {
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/applications" element={<MyApplications />} />
+            <Route path="/applications/:id" element={<CompletedApplication />} />
             <Route path="/history" element={<ApplicationHistory />} />
             <Route path="/settings" element={<Navigate to="/profile" replace />} />
           </Route>
