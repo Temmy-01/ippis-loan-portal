@@ -46,6 +46,7 @@ export default function FaceStep() {
     [photo],
   )
 
+  
   const handleCaptured = useCallback(
     async (captured: File) => {
       setPhoto(URL.createObjectURL(captured))
