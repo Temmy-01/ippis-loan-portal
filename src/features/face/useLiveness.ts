@@ -24,8 +24,10 @@ const BLINK_CLOSED = 0.5
 const BLINK_OPEN = 0.25
 const TURNED = 0.3
 const CENTERED = 0.1
-const STEADY_FRAMES = 5
-const MIN_GAP_MS = 120
+const STEADY_FRAMES = 4
+const MIN_GAP_MS = 200
+const TOO_SLOW_MS = 1500
+const SAMPLE_WIDTH = 320
 
 let landmarkerPromise: Promise<FaceLandmarker> | null = null
 
@@ -33,17 +35,12 @@ const loadLandmarker = () => {
   landmarkerPromise ??= (async () => {
     const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision')
     const vision = await FilesetResolver.forVisionTasks('/face/wasm')
-    const options = (delegate: 'GPU' | 'CPU') => ({
-      baseOptions: { modelAssetPath: '/face/face_landmarker.task', delegate },
-      runningMode: 'VIDEO' as const,
+    return FaceLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: '/face/face_landmarker.task', delegate: 'CPU' },
+      runningMode: 'VIDEO',
       numFaces: 2,
       outputFaceBlendshapes: true,
     })
-    try {
-      return await FaceLandmarker.createFromOptions(vision, options('GPU'))
-    } catch {
-      return FaceLandmarker.createFromOptions(vision, options('CPU'))
-    }
   })().catch((error) => {
     landmarkerPromise = null
     throw error
@@ -71,6 +68,17 @@ const inGuide = (result: FaceLandmarkerResult) => {
   return nose.x > 0.3 && nose.x < 0.7 && nose.y > 0.25 && nose.y < 0.75
 }
 
+const sampleFrame = (video: HTMLVideoElement, canvas: HTMLCanvasElement) => {
+  const width = SAMPLE_WIDTH
+  const height = Math.round((video.videoHeight / video.videoWidth) * width) || 240
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width
+    canvas.height = height
+  }
+  canvas.getContext('2d')?.drawImage(video, 0, 0, width, height)
+  return canvas
+}
+
 const snapshot = (video: HTMLVideoElement) =>
   new Promise<File>((resolve, reject) => {
     const canvas = document.createElement('canvas')
@@ -89,6 +97,7 @@ export function useLiveness(onCaptured: (photo: File) => void) {
   const streamRef = useRef<MediaStream | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const warningRef = useRef<string | null>(null)
+  const sampleRef = useRef<HTMLCanvasElement | null>(null)
   const progress = useRef({ steady: 0, eyesClosed: false })
   const [stage, setStage] = useState<LivenessStage>('idle')
   const [warning, setWarning] = useState<string | null>(null)
@@ -129,9 +138,16 @@ export function useLiveness(onCaptured: (photo: File) => void) {
           return
         }
 
+        sampleRef.current ??= document.createElement('canvas')
         const startedAt = performance.now()
-        const result = landmarker.detectForVideo(video, startedAt)
+        const result = landmarker.detectForVideo(sampleFrame(video, sampleRef.current), startedAt)
         const took = performance.now() - startedAt
+        if (took > TOO_SLOW_MS) {
+          stop()
+          setError('This device is too slow for the face check. Please try again on a phone or another computer.')
+          setStage('error')
+          return
+        }
         const faces = result.faceLandmarks.length
         if (faces === 0) showWarning('We cannot see your face. Move into the guide.')
         else if (faces > 1) showWarning('Only one person should be in front of the camera.')
