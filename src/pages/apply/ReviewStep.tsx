@@ -5,7 +5,7 @@ import iconEdit from '@/assets/apply/icon-edit.svg'
 import iconWarning from '@/assets/apply/icon-warning.svg'
 import { LINK_BUTTON } from '@/components/apply/buttonStyles'
 import { InfoBox } from '@/components/apply/InfoBox'
-import { UPLOAD_SLOTS } from '@/data/applicationOptions'
+import { isBusinessProduct, productName, uploadSlotsFor } from '@/data/applicationOptions'
 import { StepPage } from '@/components/apply/StepPage'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { cn } from '@/lib/cn'
@@ -62,6 +62,7 @@ export default function ReviewStep() {
   const [problem, setProblem] = useState<{ message: string; step?: string } | null>(null)
 
   const contact = [data.email, data.phone].filter(Boolean).join(' · ')
+  const isPrivate = data.loanPackage === 'private'
 
   const handleSubmit = async () => {
     if (!data.consent) return
@@ -77,7 +78,7 @@ export default function ReviewStep() {
   }
 
   return (
-    <StepPage index={6} onContinue={handleSubmit} submit={{ label: 'Submit Application', enabled: data.consent, loading: submitting }}>
+    <StepPage slug="review" onContinue={handleSubmit} submit={{ label: 'Submit Application', enabled: data.consent, loading: submitting }}>
       <div className="flex flex-col gap-[14px] pt-4">
         <Section
           title="Personal Information"
@@ -87,24 +88,23 @@ export default function ReviewStep() {
             { label: 'Full name', value: data.fullName },
             { label: 'Date of birth', value: formatDate(data.dateOfBirth) },
             { label: 'Contact', value: contact },
+            ...(isPrivate
+              ? [
+                  { label: 'Phone number 2', value: data.phone2, fallback: 'None' },
+                  { label: 'Next of kin', value: [data.nokFirstName, data.nokLastName].filter(Boolean).join(' ') },
+                  { label: 'Next of kin phone', value: data.nokPhone },
+                ]
+              : []),
           ]}
         />
-        <Section
-          title="Employment Information"
-          step="employment"
-          delay={120}
-          items={[
-            { label: 'Employer organization', value: data.employer },
-          ]}
-        />
-        <Section
-          title="IPPIS Information"
-          step="ippis"
-          delay={180}
-          items={[
-            { label: 'Staff Identity number', value: maskNumber(data.ippisNumber) },
-          ]}
-        />
+        {isPrivate ? (
+          <Section title="Loan Type" step="loantype" delay={100} items={[{ label: 'Loan type', value: productName(data.productCode) }]} />
+        ) : (
+          <>
+            <Section title="Employment Information" step="employment" delay={120} items={[{ label: 'Employer organization', value: data.employer }]} />
+            <Section title="Staff Identity Information" step="staff-id" delay={180} items={[{ label: 'Staff Identity number', value: maskNumber(data.ippisNumber) }]} />
+          </>
+        )}
         <Section
           title="Loan Information"
           step="loan"
@@ -115,22 +115,63 @@ export default function ReviewStep() {
             { label: 'Loan Tenor', value: data.repaymentPeriod, fallback: 'To be confirmed in an approved offer' },
           ]}
         />
+        {isPrivate && (
+          <>
+            <Section
+              title="Work / Business"
+              step="business"
+              delay={270}
+              items={
+                isBusinessProduct(data.productCode)
+                  ? [
+                      { label: 'Repayment source', value: data.repaymentSource },
+                      { label: 'Business name', value: data.businessName },
+                      { label: 'Years in business', value: data.yearsOfExistence },
+                      { label: 'RC / CAC number', value: data.rcNumber },
+                      { label: 'Regulatory body', value: data.regulatoryBody },
+                    ]
+                  : [
+                      { label: 'Repayment source', value: data.repaymentSource },
+                      { label: 'Confirmed staff', value: data.confirmedStaff === 'yes' ? 'Yes' : data.confirmedStaff === 'no' ? 'No' : '' },
+                      { label: 'Position', value: data.position, fallback: 'Not given' },
+                    ]
+              }
+            />
+            <Section
+              title="Identity"
+              step="identity"
+              delay={290}
+              items={[
+                { label: 'BVN', value: maskNumber(data.bvn) },
+                { label: 'NIN', value: maskNumber(data.nin) },
+                { label: 'Verification', value: data.kyc?.verified ? 'Verified' : '' },
+              ]}
+            />
+            <Section
+              title="Bank Account"
+              step="bank"
+              delay={310}
+              items={[
+                { label: 'Bank', value: data.bank?.bankName ?? '' },
+                { label: 'Account name', value: data.bank?.accountName ?? '' },
+                { label: 'Account number', value: data.bank?.accountNumber ?? '' },
+              ]}
+            />
+          </>
+        )}
         <Section
           title="Uploaded Documents"
           step="documents"
-          delay={300}
-          items={[
-            ...UPLOAD_SLOTS.map(({ slot, label, required }) => ({
-              label,
-              value: data.uploads[slot]?.name ?? '',
-              fallback: required ? undefined : 'None',
-            })),
-          ]}
+          delay={330}
+          items={uploadSlotsFor(data.loanPackage, data.productCode).map(({ slot, label }) => ({
+            label,
+            value: data.uploads[slot]?.name ?? '',
+          }))}
         />
         <Section
           title="Face Check"
           step="face"
-          delay={340}
+          delay={350}
           items={[{ label: 'Live face check', value: data.uploads.face ? 'Completed' : '' }]}
         />
       </div>

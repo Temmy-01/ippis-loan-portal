@@ -4,3 +4,8 @@
 
 [build.environment]
   VITE_API_URL = "https://stage-api-lms.dmbfinance.co/dominion/api/v2"
+
+[[headers]]
+  for = "/face/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

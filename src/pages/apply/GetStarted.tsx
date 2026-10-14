@@ -7,7 +7,7 @@ import infoBegin from '@/assets/apply/info-begin.svg'
 import { LINK_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { InfoBox } from '@/components/apply/InfoBox'
 import { useApplication } from '@/features/application/ApplicationContext'
-import { APPLICATION_STEPS } from '@/features/application/steps'
+import { stepsFor } from '@/features/application/steps'
 import { cn } from '@/lib/cn'
 
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
@@ -58,7 +58,7 @@ export default function GetStarted() {
           What you'll complete
         </h2>
         <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-          {APPLICATION_STEPS.map((step, index) => (
+          {stepsFor(data.loanPackage).map((step, index) => (
             <li
               key={step.slug}
               className="anim-fade-up flex h-[54px] items-center gap-2.5 rounded-[10px] bg-app-bg p-[13px] transition-colors duration-200 hover:bg-lilac-soft/60"
@@ -74,8 +74,9 @@ export default function GetStarted() {
       </section>
 
       <InfoBox icon={infoBegin} iconWidth={14.58} title="Before you begin" className="anim-fade-up mt-4">
-        Have your personal, employment and IPPIS information ready. Document requirements will be shown during the
-        application and are configured by Dominion Merchant.
+        {data.loanPackage === 'private'
+          ? 'Have your BVN, NIN, a means of ID and your bank app or internet banking details ready. For SME and Auto loans, have your CAC certificate too.'
+          : 'Have your personal, employment and staff identity information ready. Document requirements will be shown during the application and are configured by Dominion Merchant.'}
       </InfoBox>
 
       <p className="flex items-center gap-2.5 pt-[35px] pb-[25px] font-inter text-[14px] leading-[21.7px] text-app-muted">

@@ -6,7 +6,11 @@ import type { ApplicationStatus, StatusSummary } from './status'
 
 export type UploadedDocument = { name: string; size: number }
 
-export type UploadSlot = 'workId' | 'passport' | 'face'
+export type UploadSlot = 'workId' | 'passport' | 'meansOfId' | 'cac' | 'face'
+
+export type KycState = { verified: boolean; ninStatus: 'matched' | 'mismatch' | 'unavailable' | null; checksLeft: number }
+
+export type BankLink = { provider: string; bankName: string; accountName: string; accountNumber: string; linkedAt: string }
 
 export const FORM_FIELDS = [
   'fullName',
@@ -21,6 +25,20 @@ export const FORM_FIELDS = [
   'amount',
   'purpose',
   'repaymentPeriod',
+  'phone2',
+  'nokFirstName',
+  'nokLastName',
+  'nokPhone',
+  'productCode',
+  'repaymentSource',
+  'confirmedStaff',
+  'position',
+  'businessName',
+  'yearsOfExistence',
+  'rcNumber',
+  'regulatoryBody',
+  'bvn',
+  'nin',
 ] as const
 
 export type FormField = (typeof FORM_FIELDS)[number]
@@ -31,6 +49,8 @@ export type ApplicationData = Record<FormField, string> & {
   status: ApplicationStatus | null
   summary: StatusSummary | null
   loanPackage: LoanPackageId | null
+  kyc: KycState | null
+  bank: BankLink | null
   uploads: Partial<Record<UploadSlot, UploadedDocument>>
   consent: boolean
   startedAt: string | null
@@ -51,6 +71,22 @@ export const EMPTY_APPLICATION: ApplicationData = {
   amount: '',
   purpose: '',
   repaymentPeriod: '',
+  phone2: '',
+  nokFirstName: '',
+  nokLastName: '',
+  nokPhone: '',
+  productCode: '',
+  repaymentSource: '',
+  confirmedStaff: '',
+  position: '',
+  businessName: '',
+  yearsOfExistence: '',
+  rcNumber: '',
+  regulatoryBody: '',
+  bvn: '',
+  nin: '',
+  kyc: null,
+  bank: null,
   id: null,
   reference: null,
   status: null,
@@ -67,6 +103,8 @@ export type SaveStatus = 'saved' | 'saving' | 'error'
 
 export type SubmitResult = { ok: boolean; message: string; step?: string }
 
+export type ActionResult = { ok: boolean; message: string; field?: string }
+
 type ApplicationContextValue = {
   data: ApplicationData
   loading: boolean
@@ -77,6 +115,8 @@ type ApplicationContextValue = {
   removeDocument: (slot: UploadSlot) => Promise<string | null>
   flush: () => Promise<boolean>
   submit: () => Promise<SubmitResult>
+  verifyBvn: (bvn: string, nin: string) => Promise<ActionResult>
+  linkBank: (options?: { mismatch?: boolean }) => Promise<ActionResult>
 }
 
 export const ApplicationContext = createContext<ApplicationContextValue | null>(null)

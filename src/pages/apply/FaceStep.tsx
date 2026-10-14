@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LuCheck, LuScanFace } from 'react-icons/lu'
-import { useNavigate } from 'react-router-dom'
 
 import iconUserOutline from '@/assets/app/icon-user-outline.svg'
 import { PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
 import { useApplication } from '@/features/application/ApplicationContext'
-import { STAGE_TEXT, useLiveness, type LivenessStage } from '@/features/face/useLiveness'
+import { useStepNav } from '@/features/application/useStepNav'
+import { preloadLandmarker, STAGE_TEXT, useLiveness, type LivenessStage } from '@/features/face/useLiveness'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 
@@ -20,13 +20,17 @@ const CHECKS: { stage: LivenessStage; label: string }[] = [
 const ORDER: LivenessStage[] = ['position', 'blink', 'turn', 'center', 'done']
 
 export default function FaceStep() {
-  const navigate = useNavigate()
+  const { goNext } = useStepNav('face')
   const { data, uploadDocument } = useApplication()
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [stepError, setStepError] = useState<string | null>(null)
   const [photo, setPhoto] = useState<string | null>(null)
   const completed = Boolean(data.uploads.face)
+
+  useEffect(() => {
+    if (!completed) preloadLandmarker()
+  }, [completed])
 
   useEffect(() => {
     if (!completed || photo || !data.id) return
@@ -68,7 +72,7 @@ export default function FaceStep() {
       setStepError('Please complete the face check to continue')
       return
     }
-    navigate('/apply/review')
+    goNext()
   }
 
   const restart = () => {
@@ -81,7 +85,7 @@ export default function FaceStep() {
   const showPhoto = Boolean(photo) && !cameraOn && stage !== 'loading'
 
   return (
-    <StepPage index={5} onContinue={handleContinue}>
+    <StepPage slug="face" onContinue={handleContinue}>
       <StepCard className="p-4 sm:p-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-3 rounded-[18px] bg-cam-frame p-3 sm:p-4">

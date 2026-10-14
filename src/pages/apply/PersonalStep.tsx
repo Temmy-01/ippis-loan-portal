@@ -1,23 +1,32 @@
-import { useNavigate } from 'react-router-dom'
-
 import { Field, SelectInput, TextInput } from '@/components/apply/FormField'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
 import { GENDERS, NIGERIAN_STATES } from '@/data/applicationOptions'
 import { required, useStepErrors } from '@/features/application/useStepErrors'
+import { useStepNav } from '@/features/application/useStepNav'
 import { isEmail, isPhone } from '@/lib/validators'
 
 const TODAY = new Date().toISOString().slice(0, 10)
 
 export default function PersonalStep() {
-  const navigate = useNavigate()
-  const { validate, field } = useStepErrors({
+  const { goNext } = useStepNav('personal')
+  const { data, validate, field } = useStepErrors({
     fullName: required('Enter your full name'),
     dateOfBirth: required('Enter your date of birth'),
     phone: (value) => (isPhone(value) ? undefined : 'Enter an 11-digit phone number, e.g. 08012345678'),
     email: (value) => (isEmail(value) ? undefined : 'Enter a valid email address'),
     state: required('Select your state of residence'),
     address: required('Enter your residential address'),
+    phone2: (value) => (value && !isPhone(value) ? 'Enter an 11-digit phone number' : undefined),
+    nokFirstName: (value, current) => (current.loanPackage === 'private' && !value.trim() ? "Enter your next of kin's first name" : undefined),
+    nokLastName: (value, current) => (current.loanPackage === 'private' && !value.trim() ? "Enter your next of kin's last name" : undefined),
+    nokPhone: (value, current) => (current.loanPackage === 'private' && !isPhone(value) ? "Enter your next of kin's 11-digit phone number" : undefined),
   })
+  const isPrivate = data.loanPackage === 'private'
+  const phone2 = field('phone2')
+  const nokFirstName = field('nokFirstName')
+  const nokLastName = field('nokLastName')
+  const nokPhone = field('nokPhone')
+  const digits = (value: string) => value.replace(/\D/g, '').slice(0, 11)
 
   const fullName = field('fullName')
   const dateOfBirth = field('dateOfBirth')
@@ -28,7 +37,7 @@ export default function PersonalStep() {
   const address = field('address')
 
   return (
-    <StepPage index={0} onContinue={() => validate() && navigate('/apply/employment')}>
+    <StepPage slug="personal" onContinue={() => validate() && goNext()}>
       <StepCard className="sm:pb-[51px]">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field label="Full name" error={fullName.error}>
@@ -77,6 +86,33 @@ export default function PersonalStep() {
               <TextInput id={id} aria-describedby={describedBy} invalid={invalid} autoComplete="street-address" placeholder="Enter your current home address" value={address.value} onValueChange={address.onValueChange} />
             )}
           </Field>
+          {isPrivate && (
+            <>
+              <Field label="Phone number 2 (optional)" error={phone2.error}>
+                {({ id, describedBy, invalid }) => (
+                  <TextInput id={id} type="tel" inputMode="numeric" aria-describedby={describedBy} invalid={invalid} placeholder="08012345678" value={phone2.value} onValueChange={(value) => phone2.onValueChange(digits(value))} />
+                )}
+              </Field>
+              <div className="md:col-span-2 border-t border-app-line pt-5">
+                <p className="font-inter text-[15px] font-bold text-app-ink">Next of kin</p>
+              </div>
+              <Field label="First name" error={nokFirstName.error}>
+                {({ id, describedBy, invalid }) => (
+                  <TextInput id={id} aria-describedby={describedBy} invalid={invalid} value={nokFirstName.value} onValueChange={nokFirstName.onValueChange} />
+                )}
+              </Field>
+              <Field label="Last name" error={nokLastName.error}>
+                {({ id, describedBy, invalid }) => (
+                  <TextInput id={id} aria-describedby={describedBy} invalid={invalid} value={nokLastName.value} onValueChange={nokLastName.onValueChange} />
+                )}
+              </Field>
+              <Field label="Phone number" error={nokPhone.error}>
+                {({ id, describedBy, invalid }) => (
+                  <TextInput id={id} type="tel" inputMode="numeric" aria-describedby={describedBy} invalid={invalid} placeholder="08012345678" value={nokPhone.value} onValueChange={(value) => nokPhone.onValueChange(digits(value))} />
+                )}
+              </Field>
+            </>
+          )}
         </div>
       </StepCard>
     </StepPage>

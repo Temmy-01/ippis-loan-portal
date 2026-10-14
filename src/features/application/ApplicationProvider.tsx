@@ -8,7 +8,10 @@ import {
   ApplicationContext,
   EMPTY_APPLICATION,
   FORM_FIELDS,
+  type ActionResult,
   type ApplicationData,
+  type BankLink,
+  type KycState,
   type FormField,
   type SaveStatus,
   type SubmitResult,
@@ -22,7 +25,7 @@ type ServerApplication = {
   loanPackage: LoanPackageId
   status: ApplicationStatus
   summary: StatusSummary | null
-  data: Partial<Record<FormField, string>>
+  data: Partial<Record<FormField, string>> & { kyc?: KycState | null; bank?: BankLink | null }
   consent: boolean
   documents: Array<{ slot: UploadSlot; fileName: string; size: number }>
   startedAt: string
@@ -40,6 +43,8 @@ const fromServer = (app: ServerApplication): ApplicationData => ({
   status: app.status,
   summary: app.summary,
   loanPackage: app.loanPackage,
+  kyc: app.data?.kyc ?? null,
+  bank: app.data?.bank ?? null,
   consent: app.consent,
   uploads: Object.fromEntries(app.documents.map((doc) => [doc.slot, { name: doc.fileName, size: doc.size }])),
   startedAt: app.startedAt,
@@ -205,9 +210,30 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
     return { ok: false, message: result.message, step: result.payload?.step }
   }, [flush])
 
+  const runAction = useCallback(async (path: string, body: Record<string, unknown>): Promise<ActionResult> => {
+    if (!(await flush())) return { ok: false, message: "We couldn't save your latest changes. Please try again." }
+    const id = latest.current.id
+    if (!id) return { ok: false, message: 'Please start your application first.' }
+    const result = await api<ServerApplication & { field?: string }>(`/portal/applications/${id}/${path}`, { method: 'POST', auth: true, body })
+    if (result.ok && result.payload) {
+      setData(fromServer(result.payload))
+      return { ok: true, message: result.message }
+    }
+    const fresh = await api<ServerApplication>(`/portal/applications/${id}`, { auth: true })
+    if (fresh.ok && fresh.payload) setData(fromServer(fresh.payload))
+    return { ok: false, message: result.message, field: result.payload?.field }
+  }, [flush])
+
+  const verifyBvn = useCallback((bvn: string, nin: string) => runAction('kyc/bvn', { bvn, nin }), [runAction])
+
+  const linkBank = useCallback(
+    (options?: { mismatch?: boolean }) => runAction('bank/simulate', { mismatch: options?.mismatch === true }),
+    [runAction],
+  )
+
   const value = useMemo(
-    () => ({ data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit }),
-    [data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit],
+    () => ({ data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit, verifyBvn, linkBank }),
+    [data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit, verifyBvn, linkBank],
   )
 
   return <ApplicationContext.Provider value={value}>{children}</ApplicationContext.Provider>

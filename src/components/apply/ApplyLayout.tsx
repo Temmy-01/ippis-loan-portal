@@ -5,8 +5,9 @@ import iconSaved from '@/assets/apply/icon-saved.svg'
 import { Stepper } from '@/components/apply/Stepper'
 import { Logo } from '@/components/ui/Logo'
 import { useApplication } from '@/features/application/ApplicationContext'
+import type { ApplicationStep } from '@/features/application/steps'
 
-export function ApplyLayout({ current, children }: { current: number; children: ReactNode }) {
+export function ApplyLayout({ current, steps, children }: { current: number; steps: ApplicationStep[]; children: ReactNode }) {
   const { saveStatus } = useApplication()
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function ApplyLayout({ current, children }: { current: number; children: 
         </p>
       </header>
 
-      <Stepper current={current} />
+      <Stepper current={current} steps={steps} />
 
       {children}
     </div>

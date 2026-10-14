@@ -15,23 +15,50 @@ export const EMPLOYERS = [
   'Nigerian Correctional Service',
   'Nigeria Police Force',
   'Federal Road Safety Corps',
+  'Staff Officers',
 ]
 
 export const LOAN_PURPOSES = ['Personal expenses', 'Education', 'Medical', 'Home improvement', 'Business', 'Other']
 
 export const REPAYMENT_PERIODS = ['3 months', '6 months', '9 months', '12 months', '18 months', '24 months']
 
-export const UPLOAD_SLOTS = [
-  { slot: 'workId', label: 'Work ID Card', required: true, accept: 'image/*,application/pdf', hint: 'Image or PDF' },
-  { slot: 'passport', label: 'Passport Photograph', required: true, accept: 'image/*', hint: 'Image only' },
+export type DocumentSlot = 'workId' | 'passport' | 'meansOfId' | 'cac'
+
+export type SlotConfig = { slot: DocumentSlot; label: string; accept: string; hint: string }
+
+const SLOT_CONFIGS: Record<DocumentSlot, SlotConfig> = {
+  workId: { slot: 'workId', label: 'Work ID Card', accept: 'image/*,application/pdf', hint: 'Image or PDF' },
+  meansOfId: { slot: 'meansOfId', label: 'Means of ID (NIN slip or international passport)', accept: 'image/*,application/pdf', hint: 'Image or PDF' },
+  passport: { slot: 'passport', label: 'Passport Photograph', accept: 'image/*', hint: 'Image only' },
+  cac: { slot: 'cac', label: 'CAC Certificate', accept: 'image/*,application/pdf', hint: 'Image or PDF' },
+}
+
+export const PRIVATE_PRODUCTS = [
+  { code: '302', name: 'SME Loans', description: 'Working capital and growth funding for your business.', kind: 'business' },
+  { code: '303', name: 'Auto Loans', description: 'Finance a vehicle for personal or business use.', kind: 'business' },
+  { code: '305', name: 'DMB LEE (Employee Loans)', description: 'Loans for employees, repaid from salary.', kind: 'employee' },
 ] as const
 
-export const REQUIRED_UPLOADS = UPLOAD_SLOTS.filter((item) => item.required).map((item) => item.slot)
+export const isBusinessProduct = (code: string) => PRIVATE_PRODUCTS.some((product) => product.code === code && product.kind === 'business')
+
+export const productName = (code: string) => PRIVATE_PRODUCTS.find((product) => product.code === code)?.name ?? ''
+
+export const REPAYMENT_SOURCES = ['Salary', 'Business income', 'Other income']
+
+export const REGULATORY_BODIES = ['CAC', 'SCUML', 'CBN', 'NAFDAC', 'SON', 'Other']
+
+export const uploadSlotsFor = (loanPackage: string | null, productCode: string): SlotConfig[] => {
+  if (loanPackage !== 'private') return [SLOT_CONFIGS.workId, SLOT_CONFIGS.passport]
+  const slots = [SLOT_CONFIGS.meansOfId, SLOT_CONFIGS.passport]
+  if (isBusinessProduct(productCode)) slots.push(SLOT_CONFIGS.cac)
+  return slots
+}
 
 export const IPPIS_MAX_LENGTH = 9
 
 export const EMPLOYER_IPPIS_PREFIX: Record<string, string> = {
   'Nigeria Police Force': 'PF',
+  'Staff Officers': 'DM',
 }
 
 export function ippisError(value: string, employer: string) {

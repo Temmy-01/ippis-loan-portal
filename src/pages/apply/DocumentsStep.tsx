@@ -1,16 +1,15 @@
-import { useRef, useState, type DragEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 
 import iconUpload from '@/assets/apply/icon-upload.svg'
 import infoDocuments from '@/assets/apply/info-documents.svg'
 import { InfoBox } from '@/components/apply/InfoBox'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
-import { REQUIRED_UPLOADS, UPLOAD_SLOTS } from '@/data/applicationOptions'
+import { uploadSlotsFor, type SlotConfig } from '@/data/applicationOptions'
 import { useApplication, type UploadSlot } from '@/features/application/ApplicationContext'
+import { useStepNav } from '@/features/application/useStepNav'
+import { preloadLandmarker } from '@/features/face/useLiveness'
 import { cn } from '@/lib/cn'
 import { formatFileSize } from '@/lib/format'
-
-type SlotConfig = (typeof UPLOAD_SLOTS)[number]
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 
@@ -58,14 +57,7 @@ function UploadBox({ config, error, onError }: { config: SlotConfig; error?: str
     <div className="flex flex-col gap-[7px]">
       <div className="flex items-center justify-between gap-2">
         <span className="font-inter text-[15px] leading-[23.25px] font-semibold text-app-ink">{config.label}</span>
-        <span
-          className={cn(
-            'rounded-full px-2 py-0.5 font-inter text-[11px] font-bold',
-            config.required ? 'bg-lilac-soft text-lms-purple' : 'bg-app-bg text-app-muted',
-          )}
-        >
-          {config.required ? 'Required' : 'Optional'}
-        </span>
+        <span className="rounded-full bg-lilac-soft px-2 py-0.5 font-inter text-[11px] font-bold text-lms-purple">Required</span>
       </div>
 
       <div className="relative">
@@ -142,28 +134,36 @@ function UploadBox({ config, error, onError }: { config: SlotConfig; error?: str
 }
 
 export default function DocumentsStep() {
-  const navigate = useNavigate()
+  const { goNext } = useStepNav('documents')
   const { data } = useApplication()
   const [errors, setErrors] = useState<Partial<Record<UploadSlot, string>>>({})
+  const slots = uploadSlotsFor(data.loanPackage, data.productCode)
+
+  useEffect(() => {
+    if (data.uploads.face) return
+    const timer = setTimeout(preloadLandmarker, 1500)
+    return () => clearTimeout(timer)
+  }, [data.uploads.face])
 
   const handleContinue = () => {
     const missing: Partial<Record<UploadSlot, string>> = {}
-    for (const slot of REQUIRED_UPLOADS) {
-      if (!data.uploads[slot]) missing[slot] = `Upload your ${UPLOAD_SLOTS.find((item) => item.slot === slot)?.label}`
+    for (const config of slots) {
+      if (!data.uploads[config.slot]) missing[config.slot] = `Upload your ${config.label}`
     }
     setErrors(missing)
-    if (Object.keys(missing).length === 0) navigate('/apply/face')
+    if (Object.keys(missing).length === 0) goNext()
   }
 
   return (
-    <StepPage index={4} onContinue={handleContinue}>
+    <StepPage slug="documents" onContinue={handleContinue}>
       <StepCard>
         <div className="flex flex-col gap-5">
           <InfoBox icon={infoDocuments} iconWidth={19.07}>
-            Work ID Card and Passport Photograph are required. Make sure each file is clear and readable.
+            {slots.map((config) => config.label).join(', ').replace(/, ([^,]*)$/, ' and $1')} {slots.length > 1 ? 'are' : 'is'} required. Make
+            sure each file is clear and readable.
           </InfoBox>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {UPLOAD_SLOTS.map((config) => (
+            {slots.map((config) => (
               <UploadBox
                 key={config.slot}
                 config={config}

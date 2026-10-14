@@ -5,19 +5,20 @@ import iconChevronRight from '@/assets/app/icon-chevron-right.svg'
 import iconSave from '@/assets/apply/icon-save.svg'
 import { ApplyLayout } from '@/components/apply/ApplyLayout'
 import { LINK_BUTTON, OUTLINE_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
-import { APPLICATION_STEPS } from '@/features/application/steps'
+import type { StepSlug } from '@/features/application/steps'
+import { useStepNav } from '@/features/application/useStepNav'
 import { cn } from '@/lib/cn'
 
 type StepPageProps = {
-  index: number
+  slug: StepSlug
   children: ReactNode
   onContinue: () => void
   submit?: { label: string; enabled: boolean; loading: boolean }
 }
 
-export function StepPage({ index, children, onContinue, submit }: StepPageProps) {
+export function StepPage({ slug, children, onContinue, submit }: StepPageProps) {
   const navigate = useNavigate()
-  const step = APPLICATION_STEPS[index]
+  const { steps, index, step, goBack } = useStepNav(slug)
   const isFirst = index === 0
 
   const saveAndExit = (
@@ -28,7 +29,7 @@ export function StepPage({ index, children, onContinue, submit }: StepPageProps)
   )
 
   return (
-    <ApplyLayout current={index}>
+    <ApplyLayout current={index} steps={steps}>
       <form
         noValidate
         onSubmit={(event) => {
@@ -40,7 +41,7 @@ export function StepPage({ index, children, onContinue, submit }: StepPageProps)
         <div key={step.slug} className="anim-fade-up flex items-start justify-between gap-4">
           <div className="flex flex-col gap-2">
             <p className="font-inter text-[12px] leading-[18.6px] font-extrabold tracking-[1.2px] text-lms-purple">
-              STEP {index + 1} OF {APPLICATION_STEPS.length}
+              STEP {index + 1} OF {steps.length}
             </p>
             <h1 className="pt-[1.25px] font-inter text-[28px] leading-[36px] font-bold tracking-[-1.2px] text-app-ink sm:text-[36px] sm:leading-[43.2px]">
               {step.title}
@@ -76,7 +77,7 @@ export function StepPage({ index, children, onContinue, submit }: StepPageProps)
               <button
                 type="button"
                 disabled={isFirst}
-                onClick={() => navigate(`/apply/${APPLICATION_STEPS[index - 1]?.slug}`)}
+                onClick={goBack}
                 className={cn(OUTLINE_BUTTON, isFirst && 'pointer-events-none opacity-45')}
               >
                 Back

@@ -1,11 +1,12 @@
 import type { FaceLandmarker, FaceLandmarkerResult } from '@mediapipe/tasks-vision'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-export type LivenessStage = 'idle' | 'loading' | 'position' | 'blink' | 'turn' | 'center' | 'done' | 'error'
+export type LivenessStage = 'idle' | 'loading' | 'preparing' | 'position' | 'blink' | 'turn' | 'center' | 'done' | 'error'
 
 export const STAGE_TEXT: Record<LivenessStage, string> = {
   idle: 'Camera preview will appear here',
   loading: 'Getting the camera ready…',
+  preparing: 'Getting the face check ready…',
   position: 'Place your face inside the guide',
   blink: 'Now blink your eyes',
   turn: 'Slowly turn your head to the side',
@@ -46,6 +47,10 @@ const loadLandmarker = () => {
     throw error
   })
   return landmarkerPromise
+}
+
+export const preloadLandmarker = () => {
+  loadLandmarker().catch(() => undefined)
 }
 
 const blinkScore = (result: FaceLandmarkerResult) => {
@@ -195,21 +200,34 @@ export function useLiveness(onCaptured: (photo: File) => void) {
     setError(null)
     showWarning(null)
     setStage('loading')
+    const engine = loadLandmarker()
+    engine.catch(() => undefined)
     try {
-      const [stream, landmarker] = await Promise.all([
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false }),
-        loadLandmarker(),
-      ])
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      })
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play().catch(() => undefined)
       }
-      watch(landmarker)
+      setStage('preparing')
     } catch (cameraError) {
       stop()
       const name = (cameraError as Error)?.name
-      setError(CAMERA_ERRORS[name] ?? "We couldn't start the face check. Please refresh the page and try again.")
+      setError(CAMERA_ERRORS[name] ?? "We couldn't start your camera. Please refresh the page and try again.")
+      setStage('error')
+      return
+    }
+
+    try {
+      const landmarker = await engine
+      if (!streamRef.current) return
+      watch(landmarker)
+    } catch {
+      stop()
+      setError("We couldn't load the face check. Check your internet connection and try again.")
       setStage('error')
     }
   }, [showWarning, stop, watch])
@@ -221,5 +239,5 @@ export function useLiveness(onCaptured: (photo: File) => void) {
     setError(null)
   }, [showWarning, stop])
 
-  return { videoRef, stage, warning, error, start, reset, cameraOn: ['position', 'blink', 'turn', 'center'].includes(stage) }
+  return { videoRef, stage, warning, error, start, reset, cameraOn: ['preparing', 'position', 'blink', 'turn', 'center'].includes(stage) }
 }

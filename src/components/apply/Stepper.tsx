@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom'
 
 import iconStepDone from '@/assets/apply/icon-step-done.svg'
-import { APPLICATION_STEPS } from '@/features/application/steps'
+import type { ApplicationStep } from '@/features/application/steps'
 import { cn } from '@/lib/cn'
 
-export function Stepper({ current }: { current: number }) {
+export function Stepper({ current, steps }: { current: number; steps: ApplicationStep[] }) {
   return (
     <nav aria-label="Application progress" className="w-full max-w-[1100px] px-4 py-7 sm:px-5">
       <ol className="flex justify-center">
-        {APPLICATION_STEPS.map((step, index) => {
+        {steps.map((step, index) => {
           const done = index < current
           const active = index === current
           const reached = done || active
@@ -39,7 +39,7 @@ export function Stepper({ current }: { current: number }) {
                 circle
               )}
 
-              {index < APPLICATION_STEPS.length - 1 && (
+              {index < steps.length - 1 && (
                 <span className="absolute top-[15px] right-1 left-9 h-px bg-[#d9d4dc]">
                   <span
                     className={cn(

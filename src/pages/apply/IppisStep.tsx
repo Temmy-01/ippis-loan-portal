@@ -1,5 +1,3 @@
-import { useNavigate } from 'react-router-dom'
-
 import infoIppis from '@/assets/apply/info-ippis.svg'
 import { Field, TextInput } from '@/components/apply/FormField'
 import { InfoBox } from '@/components/apply/InfoBox'
@@ -7,9 +5,10 @@ import { EMPLOYER_IPPIS_PREFIX, IPPIS_MAX_LENGTH, ippisError } from '@/data/appl
 import { StepCard, StepPage } from '@/components/apply/StepPage'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { useStepErrors } from '@/features/application/useStepErrors'
+import { useStepNav } from '@/features/application/useStepNav'
 
 export default function IppisStep() {
-  const navigate = useNavigate()
+  const { goNext } = useStepNav('staff-id')
   const { flush, data } = useApplication()
   const prefix = EMPLOYER_IPPIS_PREFIX[data.employer]
   const { validate, field } = useStepErrors({
@@ -21,11 +20,11 @@ export default function IppisStep() {
   const handleContinue = async () => {
     if (!validate()) return
     await flush()
-    navigate('/apply/loan')
+    goNext()
   }
 
   return (
-    <StepPage index={2} onContinue={handleContinue}>
+    <StepPage slug="staff-id" onContinue={handleContinue}>
       <StepCard>
         <InfoBox icon={infoIppis} iconWidth={20} title="Where can I find my Staff Identity number?" className="mb-10">
           Check an official payroll record or contact your employer's payroll team. Do not guess this number.

@@ -72,7 +72,7 @@ export default function MyApplications() {
   const completed = (apps ?? []).filter((app) => isFinished(app.status))
 
   const details = [
-    { label: 'How much do you need', value: data.amount ? formatNaira(data.amount) : 'Not set yet' },
+    { label: 'How much do you need?', value: data.amount ? formatNaira(data.amount) : 'Not set yet' },
     { label: 'Date Started', value: day(data.startedAt) },
     { label: 'Last Updated', value: day(data.updatedAt) },
     progress.submitted

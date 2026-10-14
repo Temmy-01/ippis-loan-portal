@@ -1,12 +1,11 @@
-import { useNavigate } from 'react-router-dom'
-
 import { Field, SelectInput } from '@/components/apply/FormField'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
 import { EMPLOYERS } from '@/data/applicationOptions'
 import { required, useStepErrors } from '@/features/application/useStepErrors'
+import { useStepNav } from '@/features/application/useStepNav'
 
 export default function EmploymentStep() {
-  const navigate = useNavigate()
+  const { goNext } = useStepNav('employment')
   const { validate, field } = useStepErrors({
     employer: required('Select your employer organization'),
   })
@@ -14,7 +13,7 @@ export default function EmploymentStep() {
   const employer = field('employer')
 
   return (
-    <StepPage index={1} onContinue={() => validate() && navigate('/apply/ippis')}>
+    <StepPage slug="employment" onContinue={() => validate() && goNext()}>
       <StepCard className="sm:pb-[51px]">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <Field label="Employer organization" error={employer.error}>

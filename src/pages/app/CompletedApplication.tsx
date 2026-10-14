@@ -131,7 +131,7 @@ export default function CompletedApplication() {
 
       <Card title="Summary" ms={80}>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-5 md:grid-cols-4">
-          <Detail label="How much do you need" value={formatNaira(data.amount ?? '')} />
+          <Detail label="How much do you need?" value={formatNaira(data.amount ?? '')} />
           <Detail label="Loan Tenor" value={data.repaymentPeriod} />
           <Detail label="Date Started" value={formatDate(app.startedAt.slice(0, 10))} />
           <Detail label="Date Submitted" value={app.submittedAt ? formatDateTime(app.submittedAt) : ''} />
