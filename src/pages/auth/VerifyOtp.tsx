@@ -13,7 +13,7 @@ const CODE_LENGTH = 6
 
 type VerifyState = {
   mode: 'signup' | 'contact'
-  email?: string
+  login?: string
   maskedEmail?: string
   maskedPhone?: string
 }
@@ -22,7 +22,10 @@ export default function VerifyOtp() {
   const navigate = useNavigate()
   const location = useLocation()
   const state = location.state as VerifyState | null
-  const sentTo = state?.maskedEmail ?? state?.maskedPhone ?? 'your email and phone'
+  const isSignup = state?.mode === 'signup'
+  const sentTo = isSignup
+    ? (state?.maskedEmail ?? 'your email')
+    : [state?.maskedEmail, state?.maskedPhone].filter(Boolean).join(' and ') || 'your new contact details'
 
   const [code, setCode] = useState('')
   const timer = useCodeTimer()
@@ -30,7 +33,7 @@ export default function VerifyOtp() {
   const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  if (!state?.mode || (state.mode === 'signup' && !state.email)) return <Navigate to="/signup" replace />
+  if (!state?.mode || (isSignup && !state.login)) return <Navigate to="/signup" replace />
 
   const handleResend = async () => {
     if (!timer.canResend) return
@@ -41,7 +44,7 @@ export default function VerifyOtp() {
     setCode('')
     setError('')
     timer.restart()
-    const result = await api('/portal/auth/resend-otp', { body: { email: state.email } })
+    const result = await api('/portal/auth/resend-otp', { body: { login: state.login } })
     if (result.ok) setNotice('We have sent you a new code.')
     else setError(result.message)
   }
@@ -56,7 +59,7 @@ export default function VerifyOtp() {
 
     if (state.mode === 'signup') {
       const result = await api<{ token: string; customer: Customer }>('/portal/auth/verify-otp', {
-        body: { email: state.email, code },
+        body: { login: state.login, code },
       })
       setSubmitting(false)
       if (result.ok && result.payload) {
@@ -94,12 +97,12 @@ export default function VerifyOtp() {
         >
           <div className="flex flex-col items-center gap-4 text-center">
             <h1 className="font-poppins text-[28px] leading-[40px] font-semibold text-ink sm:text-[36px] sm:leading-[48px]">
-              Verify your contact details
+              {isSignup ? 'Verify your email address' : 'Verify your contact details'}
             </h1>
             <p className="font-poppins text-[16px] leading-[25px] text-ink-navy sm:text-[18px]">
               We've sent a verification code to {sentTo}.
               <br />
-              Enter the code to confirm your details.
+              {isSignup ? 'Enter the code to activate your account.' : 'Enter the code to confirm your details.'}
             </p>
           </div>
 
@@ -149,7 +152,7 @@ export default function VerifyOtp() {
           </div>
 
           <Button type="submit" loading={submitting} className="mt-10">
-            Verify Contact Details
+            {isSignup ? 'Verify Email Address' : 'Verify Contact Details'}
           </Button>
         </form>
       </main>

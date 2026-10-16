@@ -1,88 +1,79 @@
-import { useCallback, useEffect, useState } from 'react'
-import { LuCheck, LuScanFace } from 'react-icons/lu'
+import { useEffect, useState } from 'react'
+import { LuCamera, LuCheck, LuScanFace } from 'react-icons/lu'
+import { Link } from 'react-router-dom'
 
 import iconUserOutline from '@/assets/app/icon-user-outline.svg'
-import { PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
+import { OUTLINE_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
-import { useApplication } from '@/features/application/ApplicationContext'
+import { idTypeLabel } from '@/data/applicationOptions'
+import { MAX_FACE_CHECKS, useApplication } from '@/features/application/ApplicationContext'
 import { useStepNav } from '@/features/application/useStepNav'
-import { preloadLandmarker, STAGE_TEXT, useLiveness, type LivenessStage } from '@/features/face/useLiveness'
+import { useCamera } from '@/features/face/useCamera'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 
-const CHECKS: { stage: LivenessStage; label: string }[] = [
-  { stage: 'position', label: 'Face in the guide' },
-  { stage: 'blink', label: 'Blink your eyes' },
-  { stage: 'turn', label: 'Turn your head' },
-  { stage: 'center', label: 'Look straight ahead' },
-]
-
-const ORDER: LivenessStage[] = ['position', 'blink', 'turn', 'center', 'done']
+const TIPS = ['Face the camera with good light on your face', 'Remove glasses, caps and face coverings', 'Keep only your face in the frame']
 
 export default function FaceStep() {
   const { goNext } = useStepNav('face')
-  const { data, uploadDocument } = useApplication()
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [stepError, setStepError] = useState<string | null>(null)
-  const [photo, setPhoto] = useState<string | null>(null)
-  const completed = Boolean(data.uploads.face)
+  const { data, checkFace } = useApplication()
+  const { videoRef, cameraOn, error: cameraError, start, stop, capture } = useCamera()
+  const [photo, setPhoto] = useState<{ file: File | null; url: string } | null>(null)
+  const [checking, setChecking] = useState(false)
+  const [result, setResult] = useState<{ ok: boolean; message: string; fixId?: boolean } | null>(null)
+
+  const matched = data.faceCheck.matched && Boolean(data.uploads.face)
+  const attemptsLeft = data.faceCheck.attemptsLeft
+  const hasId = Boolean(data.uploads.meansOfId && data.idType)
 
   useEffect(() => {
-    if (!completed) preloadLandmarker()
-  }, [completed])
-
-  useEffect(() => {
-    if (!completed || photo || !data.id) return
+    if (!matched || photo || !data.id) return
     let cancelled = false
-    api<{ content: string }>(`/portal/applications/${data.id}/documents/face`, { auth: true }).then((result) => {
-      if (!cancelled && result.ok && result.payload) setPhoto(result.payload.content)
+    api<{ content: string }>(`/portal/applications/${data.id}/documents/face`, { auth: true }).then((saved) => {
+      if (!cancelled && saved.ok && saved.payload) setPhoto({ file: null, url: saved.payload.content })
     })
     return () => {
       cancelled = true
     }
-  }, [completed, photo, data.id])
+  }, [matched, photo, data.id])
 
   useEffect(
     () => () => {
-      if (photo?.startsWith('blob:')) URL.revokeObjectURL(photo)
+      if (photo?.url.startsWith('blob:')) URL.revokeObjectURL(photo.url)
     },
     [photo],
   )
 
-  
-  const handleCaptured = useCallback(
-    async (captured: File) => {
-      setPhoto(URL.createObjectURL(captured))
-      setSaving(true)
-      setSaveError(null)
-      const problem = await uploadDocument('face', captured)
-      setSaving(false)
-      if (problem) setSaveError(problem)
-    },
-    [uploadDocument],
-  )
+  const openCamera = () => {
+    setPhoto(null)
+    setResult(null)
+    start()
+  }
 
-  const { videoRef, stage, warning, error, start, reset, cameraOn } = useLiveness(handleCaptured)
-  const position = ORDER.indexOf(stage)
-  const busy = stage === 'loading' || saving
+  const takePhoto = async () => {
+    const file = await capture()
+    if (file) setPhoto({ file, url: URL.createObjectURL(file) })
+  }
+
+  const submitPhoto = async () => {
+    if (!photo?.file) return
+    setChecking(true)
+    const outcome = await checkFace(photo.file)
+    setChecking(false)
+    setResult({ ok: outcome.ok, message: outcome.message, fixId: outcome.field === 'documents' })
+    if (!outcome.ok) setPhoto(null)
+  }
 
   const handleContinue = () => {
-    if (!completed) {
-      setStepError('Please complete the face check to continue')
+    if (!matched) {
+      setResult({ ok: false, message: 'Please complete the face check to continue.' })
       return
     }
     goNext()
   }
 
-  const restart = () => {
-    setSaveError(null)
-    setStepError(null)
-    setPhoto(null)
-    start()
-  }
-
-  const showPhoto = Boolean(photo) && !cameraOn && stage !== 'loading'
+  const waitingToSend = Boolean(photo?.file) && !checking && !result?.ok
+  const outOfAttempts = attemptsLeft <= 0 && !matched
 
   return (
     <StepPage slug="face" onContinue={handleContinue}>
@@ -97,106 +88,116 @@ export default function FaceStep() {
                 muted
                 className={cn('absolute inset-0 size-full -scale-x-100 object-cover', !cameraOn && 'hidden')}
               />
-              {showPhoto ? (
+              {photo && !cameraOn ? (
                 <>
-                  <img src={photo as string} alt="Your face check photo" className="anim-fade-in absolute inset-0 size-full object-cover" />
+                  <img src={photo.url} alt="Your face check photo" className="anim-fade-in absolute inset-0 size-full object-cover" />
                   <span className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/70 to-transparent" />
-                  <span
-                    className={cn(
-                      'anim-pop absolute top-4 right-4 flex size-11 items-center justify-center rounded-full text-white shadow-lg',
-                      saveError ? 'bg-[#b4282d]' : 'bg-success',
-                    )}
-                  >
-                    {saving ? (
-                      <span className="anim-spin size-5 rounded-full border-2 border-white/40 border-t-white" aria-label="Saving" />
-                    ) : (
-                      <LuCheck className="size-6" strokeWidth={3} />
-                    )}
-                  </span>
+                  {(matched || checking) && (
+                    <span className="anim-pop absolute top-4 right-4 flex size-11 items-center justify-center rounded-full bg-success text-white shadow-lg">
+                      {checking ? (
+                        <span className="anim-spin size-5 rounded-full border-2 border-white/40 border-t-white" aria-label="Checking" />
+                      ) : (
+                        <LuCheck className="size-6" strokeWidth={3} />
+                      )}
+                    </span>
+                  )}
                 </>
               ) : (
                 <div
                   className={cn(
-                    'relative flex h-[260px] w-[200px] items-center justify-center rounded-t-[104px] rounded-b-[112px] border-[3px] border-dashed transition-colors duration-300',
+                    'relative flex h-[260px] w-[200px] items-center justify-center rounded-t-[104px] rounded-b-[112px] border-[3px] border-dashed',
                     cameraOn ? 'border-lms-lilac shadow-[0_0_0_9999px_rgb(20_12_28/0.45)]' : 'border-lms-lilac/70',
                   )}
                 >
-                  {!cameraOn && !completed && <img src={iconUserOutline} alt="" className="block size-[64px]" />}
-                  {!cameraOn && completed && (
-                    <span className="anim-pop flex size-16 items-center justify-center rounded-full bg-success text-white">
-                      <LuCheck className="size-8" strokeWidth={3} />
-                    </span>
-                  )}
+                  {!cameraOn && <img src={iconUserOutline} alt="" className="block size-[64px]" />}
                 </div>
               )}
-              <p
-                key={`${stage}-${saving}`}
-                aria-live="polite"
-                className="anim-fade-in absolute inset-x-0 bottom-5 px-4 text-center font-inter text-[16px] leading-[24px] font-bold text-white"
-              >
-                {saving
-                  ? 'Saving your photo…'
-                  : saveError
-                    ? "Your photo wasn't saved"
-                    : showPhoto || (completed && stage === 'idle')
-                      ? 'Face check complete'
-                      : STAGE_TEXT[stage]}
+              <p aria-live="polite" className="absolute inset-x-0 bottom-5 px-4 text-center font-inter text-[16px] leading-[24px] font-bold text-white">
+                {checking
+                  ? 'Checking your face against your ID…'
+                  : matched && !cameraOn
+                    ? 'Your face matches your ID'
+                    : cameraOn
+                      ? 'Place your face inside the guide'
+                      : waitingToSend
+                        ? 'Happy with this photo?'
+                        : ''}
               </p>
             </div>
-            <p className="min-h-5 px-1 font-inter text-[13px] leading-[20px] text-[#f5c26b]" aria-live="polite">
-              {cameraOn ? warning : ''}
-            </p>
           </div>
 
           <div className="flex flex-col gap-4">
-            <ol className="flex flex-col gap-3">
-              {CHECKS.map((check, index) => {
-                const done = completed || position > index
-                const active = position === index
-                return (
-                  <li key={check.stage} className="flex items-center gap-3">
-                    <span
-                      className={cn(
-                        'flex size-8 shrink-0 items-center justify-center rounded-full font-inter text-[14px] font-bold transition-colors',
-                        done ? 'bg-success text-white' : active ? 'bg-lms-purple text-white' : 'bg-lilac-soft text-lms-purple',
-                      )}
-                    >
-                      {done ? <LuCheck className="size-4" strokeWidth={3} /> : index + 1}
-                    </span>
-                    <span className={cn('font-inter text-[15px] leading-[22px]', active ? 'font-bold text-app-ink' : 'text-app-muted')}>
-                      {check.label}
-                    </span>
-                  </li>
-                )
-              })}
-            </ol>
+            <ul className="flex flex-col gap-2.5">
+              {TIPS.map((tip) => (
+                <li key={tip} className="flex items-start gap-2.5 font-inter text-[15px] leading-[22px] text-app-muted">
+                  <LuCheck className="mt-0.5 size-4 shrink-0 text-lms-purple" strokeWidth={3} />
+                  {tip}
+                </li>
+              ))}
+            </ul>
 
             <p className="rounded-[12px] bg-sky-soft px-4 py-3 font-inter text-[14px] leading-[21px] text-sky-ink">
-              This confirms a real person is applying. Use good lighting, remove face coverings and keep only your face in
-              view. Your photo is saved with your application for our loan team.
+              We compare your photo with the photo on your {idTypeLabel(data.idType) || 'Valid ID'} to confirm it's really you. Your photo
+              is saved with your application for our loan team.
             </p>
 
-            {(error || saveError || stepError) && (
+            {!hasId && (
               <p role="alert" className="rounded-[12px] bg-[#fdeced] px-4 py-3 font-inter text-[14px] leading-[21px] text-[#b4282d]">
-                {error || saveError || stepError}
+                Please upload your Valid ID on the{' '}
+                <Link to="/apply/documents" className="font-bold underline">
+                  Documents step
+                </Link>{' '}
+                first.
               </p>
             )}
 
-            {cameraOn ? (
-              <button type="button" onClick={reset} className="font-inter text-[15px] font-bold text-lms-purple hover:underline">
-                Cancel
-              </button>
-            ) : (
-              <button type="button" onClick={restart} disabled={busy} className={cn(PRIMARY_BUTTON, 'justify-center')}>
-                {busy ? (
-                  <span className="anim-spin size-5 rounded-full border-2 border-white/40 border-t-white" aria-label="Loading" />
-                ) : (
-                  <>
-                    <LuScanFace className="size-5" />
-                    {completed || stage === 'done' ? 'Retake Face Check' : error || saveError ? 'Try Again' : 'Start Face Check'}
-                  </>
+            {(cameraError || (result && !result.ok)) && (
+              <p role="alert" className="rounded-[12px] bg-[#fdeced] px-4 py-3 font-inter text-[14px] leading-[21px] text-[#b4282d]">
+                {cameraError || result?.message}{' '}
+                {result?.fixId && (
+                  <Link to="/apply/documents" className="font-bold underline">
+                    Go to Documents
+                  </Link>
                 )}
+              </p>
+            )}
+            {result?.ok && (
+              <p role="status" className="rounded-[12px] bg-[#e7f6ef] px-4 py-3 font-inter text-[14px] leading-[21px] text-[#147a55]">
+                {result.message}
+              </p>
+            )}
+
+            {outOfAttempts ? null : cameraOn ? (
+              <div className="flex flex-col gap-2">
+                <button type="button" onClick={takePhoto} className={cn(PRIMARY_BUTTON, 'justify-center gap-2')}>
+                  <LuCamera className="size-5" /> Take Photo
+                </button>
+                <button type="button" onClick={stop} className="font-inter text-[15px] font-bold text-lms-purple hover:underline">
+                  Cancel
+                </button>
+              </div>
+            ) : waitingToSend ? (
+              <div className="flex flex-col gap-2">
+                <button type="button" onClick={submitPhoto} className={cn(PRIMARY_BUTTON, 'justify-center')}>
+                  Use This Photo
+                </button>
+                <button type="button" onClick={openCamera} className={cn(OUTLINE_BUTTON, 'justify-center')}>
+                  Retake
+                </button>
+              </div>
+            ) : (
+              <button type="button" onClick={openCamera} disabled={!hasId || checking} className={cn(PRIMARY_BUTTON, 'justify-center gap-2 disabled:opacity-50')}>
+                <LuScanFace className="size-5" />
+                {matched ? 'Retake Face Check' : 'Start Face Check'}
               </button>
+            )}
+
+            {!matched && attemptsLeft < MAX_FACE_CHECKS && (
+              <p className="font-inter text-[13px] text-app-muted">
+                {outOfAttempts
+                  ? 'You have used all your face check attempts for this application. Please contact us for help.'
+                  : `${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} left.`}
+              </p>
             )}
           </div>
         </div>

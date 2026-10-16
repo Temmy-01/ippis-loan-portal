@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/Button'
 import { TextField } from '@/components/ui/TextField'
 import { useSession } from '@/features/auth/session'
 import { api } from '@/lib/api'
-import { isEmail } from '@/lib/validators'
+import { toLogin } from '@/lib/validators'
 
 export default function ForgotPassword() {
   const navigate = useNavigate()
   const session = useSession()
-  const [email, setEmail] = useState('')
+  const [login, setLogin] = useState('')
   const [error, setError] = useState('')
   const [formError, setFormError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -20,18 +20,18 @@ export default function ForgotPassword() {
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!isEmail(email)) {
-      setError('Enter a valid email address')
+    const cleanLogin = toLogin(login)
+    if (!cleanLogin) {
+      setError('Enter a valid email address or 11-digit phone number')
       return
     }
     setFormError('')
     setSubmitting(true)
-    const cleanEmail = email.trim().toLowerCase()
-    const result = await api('/portal/auth/forgot-password', { body: { email: cleanEmail } })
+    const result = await api('/portal/auth/forgot-password', { body: { login: cleanLogin } })
     setSubmitting(false)
 
     if (result.ok) {
-      navigate('/reset-password', { state: { email: cleanEmail } })
+      navigate('/reset-password', { state: { login: cleanLogin } })
       return
     }
     setFormError(result.message)
@@ -51,19 +51,19 @@ export default function ForgotPassword() {
               Forgot your password?
             </h1>
             <p className="font-poppins text-[16px] leading-[25px] text-ink-navy">
-              Enter the email address on your account. We'll send a reset code to your email and phone.
+              Enter the email address or phone number on your account. We'll send a reset code to your email and phone.
             </p>
           </div>
 
           <div className="mt-10">
             <TextField
-              label="Email address"
-              type="email"
-              name="email"
-              autoComplete="email"
-              value={email}
+              label="Email address or phone number"
+              type="text"
+              name="username"
+              autoComplete="username"
+              value={login}
               onChange={(value) => {
-                setEmail(value)
+                setLogin(value)
                 setError('')
               }}
               error={error}

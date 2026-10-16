@@ -46,7 +46,7 @@ export function StepPage({ slug, children, onContinue, submit }: StepPageProps) 
             <h1 className="pt-[1.25px] font-inter text-[28px] leading-[36px] font-bold tracking-[-1.2px] text-app-ink sm:text-[36px] sm:leading-[43.2px]">
               {step.title}
             </h1>
-            <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">{step.description}</p>
+            {step.description && <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">{step.description}</p>}
           </div>
           <a
             href="tel:8001301448"

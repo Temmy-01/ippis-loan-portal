@@ -23,5 +23,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# copied from node_modules by scripts/copy-face-assets.mjs
-public/face/wasm

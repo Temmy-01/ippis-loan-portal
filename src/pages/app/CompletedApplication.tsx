@@ -28,6 +28,8 @@ type ApplicationView = {
 const DOCUMENT_LABELS: Record<string, string> = {
   workId: 'Work ID Card',
   passport: 'Passport Photograph',
+  meansOfId: 'Valid ID',
+  cac: 'CAC Certificate',
   face: 'Face check photo',
 }
 

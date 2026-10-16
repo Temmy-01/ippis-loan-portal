@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState, type DragEvent } from 'react'
+import { useRef, useState, type DragEvent } from 'react'
 
 import iconUpload from '@/assets/apply/icon-upload.svg'
 import infoDocuments from '@/assets/apply/info-documents.svg'
+import { Field, SelectInput } from '@/components/apply/FormField'
 import { InfoBox } from '@/components/apply/InfoBox'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
-import { uploadSlotsFor, type SlotConfig } from '@/data/applicationOptions'
+import { ID_TYPES, idTypeLabel, uploadSlotsFor, type SlotConfig } from '@/data/applicationOptions'
 import { useApplication, type UploadSlot } from '@/features/application/ApplicationContext'
 import { useStepNav } from '@/features/application/useStepNav'
-import { preloadLandmarker } from '@/features/face/useLiveness'
 import { cn } from '@/lib/cn'
 import { formatFileSize } from '@/lib/format'
 
@@ -23,14 +23,15 @@ function UploadBox({ config, error, onError }: { config: SlotConfig; error?: str
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const file = data.uploads[config.slot]
+  const [title, details] = config.label.split(' (')
 
   const setFile = async (next: File | undefined) => {
     if (!next || busy) return
     if (!matchesAccept(next, config.accept)) {
-      onError(`${config.label} must be ${config.hint === 'Image only' ? 'an image' : 'an image or PDF'}`)
+      onError(`${config.label} must be ${config.accept.includes('pdf') ? 'an image or PDF' : 'a photo'}`)
       return
     }
-    if (next.size > MAX_FILE_BYTES) {
+    if (next.size > MAX_FILE_BYTES && !next.type.startsWith('image/')) {
       onError('The file is too large. The maximum size is 5MB.')
       return
     }
@@ -56,7 +57,10 @@ function UploadBox({ config, error, onError }: { config: SlotConfig; error?: str
   return (
     <div className="flex flex-col gap-[7px]">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-inter text-[15px] leading-[23.25px] font-semibold text-app-ink">{config.label}</span>
+        <span className="font-inter text-[15px] leading-[23.25px] font-semibold text-app-ink">
+          {title}
+          {details && <span className="ml-1 text-[12.5px] font-normal text-app-muted">({details}</span>}
+        </span>
         <span className="rounded-full bg-lilac-soft px-2 py-0.5 font-inter text-[11px] font-bold text-lms-purple">Required</span>
       </div>
 
@@ -135,23 +139,20 @@ function UploadBox({ config, error, onError }: { config: SlotConfig; error?: str
 
 export default function DocumentsStep() {
   const { goNext } = useStepNav('documents')
-  const { data } = useApplication()
+  const { data, update } = useApplication()
   const [errors, setErrors] = useState<Partial<Record<UploadSlot, string>>>({})
+  const [idTypeError, setIdTypeError] = useState<string | undefined>()
   const slots = uploadSlotsFor(data.loanPackage, data.productCode)
-
-  useEffect(() => {
-    if (data.uploads.face) return
-    const timer = setTimeout(preloadLandmarker, 1500)
-    return () => clearTimeout(timer)
-  }, [data.uploads.face])
 
   const handleContinue = () => {
     const missing: Partial<Record<UploadSlot, string>> = {}
     for (const config of slots) {
       if (!data.uploads[config.slot]) missing[config.slot] = `Upload your ${config.label}`
     }
+    const typeMissing = data.idType ? undefined : 'Choose the type of ID you are uploading'
     setErrors(missing)
-    if (Object.keys(missing).length === 0) goNext()
+    setIdTypeError(typeMissing)
+    if (Object.keys(missing).length === 0 && !typeMissing) goNext()
   }
 
   return (
@@ -160,8 +161,24 @@ export default function DocumentsStep() {
         <div className="flex flex-col gap-5">
           <InfoBox icon={infoDocuments} iconWidth={19.07}>
             {slots.map((config) => config.label).join(', ').replace(/, ([^,]*)$/, ' and $1')} {slots.length > 1 ? 'are' : 'is'} required. Make
-            sure each file is clear and readable.
+            sure each file is clear and readable. On the next step we match your face with the photo on your Valid ID.
           </InfoBox>
+          <Field label="Type of Valid ID" error={idTypeError} className="md:max-w-[50%]">
+            {({ id, describedBy, invalid }) => (
+              <SelectInput
+                id={id}
+                aria-describedby={describedBy}
+                invalid={invalid}
+                placeholder="Select ID type"
+                options={ID_TYPES.map((type) => type.label)}
+                value={idTypeLabel(data.idType)}
+                onValueChange={(label) => {
+                  update({ idType: ID_TYPES.find((type) => type.label === label)?.value ?? '' })
+                  setIdTypeError(undefined)
+                }}
+              />
+            )}
+          </Field>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             {slots.map((config) => (
               <UploadBox

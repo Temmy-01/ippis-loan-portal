@@ -8,9 +8,9 @@ import { Logo } from '@/components/ui/Logo'
 import { TextField } from '@/components/ui/TextField'
 import { type Customer, setSession, useSession } from '@/features/auth/session'
 import { api } from '@/lib/api'
-import { isEmail } from '@/lib/validators'
+import { toLogin } from '@/lib/validators'
 
-type Errors = Partial<Record<'email' | 'password', string>>
+type Errors = Partial<Record<'login' | 'password', string>>
 
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties
 
@@ -22,7 +22,7 @@ export default function Login() {
   const session = useSession()
   const [formError, setFormError] = useState('')
   const notice = (location.state as { notice?: string } | null)?.notice
-  const [email, setEmail] = useState('')
+  const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<Errors>({})
   const [submitting, setSubmitting] = useState(false)
@@ -30,15 +30,15 @@ export default function Login() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     const nextErrors: Errors = {}
-    if (!isEmail(email)) nextErrors.email = 'Enter a valid email address'
+    const cleanLogin = toLogin(login)
+    if (!cleanLogin) nextErrors.login = 'Enter a valid email address or 11-digit phone number'
     if (!password) nextErrors.password = 'Enter your password'
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length) return
+    if (!cleanLogin || Object.keys(nextErrors).length) return
 
     setFormError('')
     setSubmitting(true)
-    const cleanEmail = email.trim().toLowerCase()
-    const result = await api<LoginReply>('/portal/auth/login', { body: { email: cleanEmail, password } })
+    const result = await api<LoginReply>('/portal/auth/login', { body: { login: cleanLogin, password } })
     setSubmitting(false)
 
     if (result.ok && result.payload?.token && result.payload.customer) {
@@ -48,7 +48,7 @@ export default function Login() {
       return
     }
     if (result.payload?.needsVerification) {
-      navigate('/verify', { state: { mode: 'signup', email: cleanEmail, maskedEmail: result.payload.email } })
+      navigate('/verify', { state: { mode: 'signup', login: cleanLogin, maskedEmail: result.payload.email } })
       return
     }
     setFormError(result.message)
@@ -74,16 +74,16 @@ export default function Login() {
 
             <form noValidate onSubmit={handleSubmit} className="mt-[39px] flex flex-col gap-5">
               <TextField
-                label="Email address"
-                type="email"
-                name="email"
-                autoComplete="email"
-                value={email}
+                label="Email address or phone number"
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={login}
                 onChange={(value) => {
-                  setEmail(value)
-                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
+                  setLogin(value)
+                  if (errors.login) setErrors((prev) => ({ ...prev, login: undefined }))
                 }}
-                error={errors.email}
+                error={errors.login}
                 heightClassName="h-14"
               />
               <TextField
@@ -111,7 +111,7 @@ export default function Login() {
                 </p>
               )}
 
-              <Button type="submit" tone={isEmail(email) && password ? 'purple' : 'lilac'} loading={submitting}>
+              <Button type="submit" tone={toLogin(login) && password ? 'purple' : 'lilac'} loading={submitting}>
                 Sign In
               </Button>
 

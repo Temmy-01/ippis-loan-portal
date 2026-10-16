@@ -9,17 +9,14 @@ import { type Customer, clearSession, getSession, initialsOf, setSession, useSes
 import { api } from '@/lib/api'
 import { cn } from '@/lib/cn'
 import { formatDate } from '@/lib/format'
-import { isEmail, isPhone, maskEmail, toPhoneDigits } from '@/lib/validators'
 
 const TABS = [
   { id: 'details', label: 'Profile Details' },
-  { id: 'contact', label: 'Contact Information' },
   { id: 'security', label: 'Password & Security' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
 
-const maskPhone = (phone: string) => `${phone.slice(0, 3)} •••• ${phone.slice(-4)}`
 const STRONG_PASSWORD = /^(?=.*\d)(?=.*[^A-Za-z\d]).{8,72}$/
 
 function Card({ children }: { children: ReactNode }) {
@@ -57,84 +54,6 @@ function ProfileDetails({ customer }: { customer: Customer }) {
           </div>
         ))}
       </dl>
-    </Card>
-  )
-}
-
-function ContactInformation() {
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [errors, setErrors] = useState<{ email?: string; phone?: string; currentPassword?: string; form?: string }>({})
-  const [saving, setSaving] = useState(false)
-
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault()
-    const next: typeof errors = {}
-    if (email && !isEmail(email)) next.email = 'Enter a valid email address'
-    if (phone && !isPhone(phone)) next.phone = 'Enter an 11-digit phone number, e.g. 08012345678'
-    if (!email && !phone) next.form = 'Enter a new email address or phone number'
-    if (!currentPassword) next.currentPassword = 'Enter your current password'
-    setErrors(next)
-    if (Object.keys(next).length) return
-
-    setSaving(true)
-    const result = await api('/portal/auth/contact', {
-      body: { currentPassword, ...(email ? { email: email.trim().toLowerCase() } : {}), ...(phone ? { phone } : {}) },
-      auth: true,
-    })
-    setSaving(false)
-
-    if (result.ok) {
-      navigate('/verify', {
-        state: {
-          mode: 'contact',
-          maskedEmail: email ? maskEmail(email.trim().toLowerCase()) : undefined,
-          maskedPhone: phone ? maskPhone(phone) : undefined,
-        },
-      })
-      return
-    }
-    if (result.status === 401) return navigate('/login')
-    setErrors({ form: result.message })
-  }
-
-  return (
-    <Card>
-      <form noValidate onSubmit={handleSubmit}>
-        <h2 className="font-inter text-[21px] leading-[32.55px] font-bold tracking-[-0.4px] text-app-ink">
-          Update contact information
-        </h2>
-        <p className="font-inter text-[16px] leading-[24.8px] text-app-muted">
-          For your security, updated details must be verified before they take effect.
-        </p>
-        <div className="mt-1 grid grid-cols-1 gap-5 md:grid-cols-2">
-          <Field label="Email address" error={errors.email}>
-            {({ id, describedBy, invalid }) => (
-              <TextInput id={id} type="email" autoComplete="email" aria-describedby={describedBy} invalid={invalid} placeholder="ada@example.com" value={email} onValueChange={(value) => { setEmail(value); setErrors({}) }} />
-            )}
-          </Field>
-          <Field label="Phone number" error={errors.phone}>
-            {({ id, describedBy, invalid }) => (
-              <TextInput id={id} type="tel" inputMode="numeric" maxLength={11} autoComplete="tel" aria-describedby={describedBy} invalid={invalid} placeholder="080 1234 5678" value={phone} onValueChange={(value) => { setPhone(toPhoneDigits(value)); setErrors({}) }} />
-            )}
-          </Field>
-          <Field label="Current password" error={errors.currentPassword}>
-            {({ id, describedBy, invalid }) => (
-              <TextInput id={id} type="password" autoComplete="current-password" aria-describedby={describedBy} invalid={invalid} value={currentPassword} onValueChange={(value) => { setCurrentPassword(value); setErrors({}) }} />
-            )}
-          </Field>
-        </div>
-        {errors.form && (
-          <p role="alert" className="anim-fade-in mt-3 font-inter text-[13px] text-danger">
-            {errors.form}
-          </p>
-        )}
-        <button type="submit" disabled={saving} className={cn(PRIMARY_BUTTON, 'mt-5')}>
-          {saving ? <span className="anim-spin size-5 rounded-full border-2 border-white/40 border-t-white" aria-label="Saving" /> : 'Save and Verify Changes'}
-        </button>
-      </form>
     </Card>
   )
 }
@@ -241,7 +160,7 @@ export default function Profile() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader eyebrow="Account Settings" title="My Profile" description="Manage your details and account security." />
+      <PageHeader eyebrow="Account" title="My Profile" description="Manage your details and account security." />
 
       <div className="mt-1 flex flex-col gap-5">
         <div
@@ -269,7 +188,6 @@ export default function Profile() {
 
         <div key={active}>
           {active === 'details' && session && <ProfileDetails customer={session.customer} />}
-          {active === 'contact' && <ContactInformation />}
           {active === 'security' && <PasswordSecurity />}
         </div>
       </div>

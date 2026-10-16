@@ -127,7 +127,7 @@ export default function SignUp() {
     setSubmitting(false)
 
     if (result.ok) {
-      navigate('/verify', { state: { mode: 'signup', email, maskedEmail: result.payload?.email } })
+      navigate('/verify', { state: { mode: 'signup', login: email, maskedEmail: result.payload?.email } })
       return
     }
     setFormError(result.message)

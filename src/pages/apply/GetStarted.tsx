@@ -6,6 +6,7 @@ import iconShieldMuted from '@/assets/apply/icon-shield-muted.svg'
 import infoBegin from '@/assets/apply/info-begin.svg'
 import { LINK_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
 import { InfoBox } from '@/components/apply/InfoBox'
+import { getLoanPackage } from '@/data/loanPackages'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { stepsFor } from '@/features/application/steps'
 import { cn } from '@/lib/cn'
@@ -47,6 +48,12 @@ export default function GetStarted() {
         >
           We'll guide you through a few simple steps to complete your application. You can save your progress and
           return whenever you're ready.
+        </p>
+        <p className="anim-fade-up pt-4 font-inter text-[15px] text-app-muted" style={delay(190)}>
+          You're applying for a <span className="font-bold text-app-ink">{getLoanPackage(data.loanPackage).shortName}</span>.{' '}
+          <Link to="/loan-packages" className="font-bold text-lms-purple underline underline-offset-2">
+            Change
+          </Link>
         </p>
       </div>
 

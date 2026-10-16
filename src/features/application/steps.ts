@@ -24,7 +24,7 @@ const STEP_DEFS = {
   loan: {
     label: 'Loan Information',
     title: 'Tell us about the loan you need',
-    description: 'Share the amount you would like to apply for and the information needed to assess your request.',
+    description: '',
   },
   business: {
     label: 'Work / Business',

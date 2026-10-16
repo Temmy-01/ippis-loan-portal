@@ -8,7 +8,6 @@ import iconShield from '@/assets/app/icon-shield.svg'
 import illusDocument from '@/assets/app/illus-document.svg'
 import { PageHeader } from '@/components/app/PageHeader'
 import { StatusPill } from '@/components/app/StatusPill'
-import { PrototypeFlows } from '@/components/app/PrototypeFlows'
 import { firstNameOf, greetingOf, useSession } from '@/features/auth/session'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { getProgress } from '@/features/application/progress'
@@ -215,7 +214,6 @@ export default function Dashboard() {
         </a>
       </section>
 
-      <PrototypeFlows />
     </div>
   )
 }

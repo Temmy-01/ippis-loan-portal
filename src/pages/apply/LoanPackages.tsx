@@ -1,16 +1,19 @@
-import { useState, type CSSProperties } from 'react'
+import { useId, useState, type CSSProperties } from 'react'
 import { LuShieldCheck, LuUser } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
 
 import { PageHeader } from '@/components/app/PageHeader'
-import { PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
-import { LOAN_PACKAGES, type LoanPackage } from '@/data/loanPackages'
+import { LINK_BUTTON, PRIMARY_BUTTON } from '@/components/apply/buttonStyles'
+import { Modal } from '@/components/ui/Modal'
+import { LOAN_PACKAGES, getLoanPackage, type LoanPackage } from '@/data/loanPackages'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { cn } from '@/lib/cn'
 
 const ICONS = { ippis: LuShieldCheck, private: LuUser }
 
-function PackageCard({ item, index, busy, onApply }: { item: LoanPackage; index: number; busy: boolean; onApply: () => void }) {
+type CardProps = { item: LoanPackage; index: number; busy: boolean; current: boolean; onApply: () => void }
+
+function PackageCard({ item, index, busy, current, onApply }: CardProps) {
   const Icon = ICONS[item.id]
   return (
     <section
@@ -30,6 +33,12 @@ function PackageCard({ item, index, busy, onApply }: { item: LoanPackage; index:
       </span>
 
       <div className="mt-8 flex flex-col gap-2.5">
+        {current && (
+          <span className="flex min-h-7 items-center gap-[7px] self-start rounded-[20px] bg-lilac-soft px-2.5 py-1">
+            <span className="size-[7px] rounded-full bg-lms-purple" />
+            <span className="font-inter text-[12px] leading-[18.6px] font-bold text-lms-purple">In progress</span>
+          </span>
+        )}
         {!item.available && (
           <span className="flex min-h-7 items-center gap-[7px] self-start rounded-[20px] bg-sky-soft px-2.5 py-1">
             <span className="size-[7px] rounded-full bg-sky-ink" />
@@ -45,7 +54,7 @@ function PackageCard({ item, index, busy, onApply }: { item: LoanPackage; index:
       <div className="mt-auto pt-8">
         {item.available ? (
           <button type="button" onClick={onApply} disabled={busy} className={cn(PRIMARY_BUTTON, 'w-full')}>
-            {busy ? <span className="anim-spin size-5 rounded-full border-2 border-white/40 border-t-white" aria-label="Starting" /> : 'Apply Now'}
+            {busy ? <span className="anim-spin size-5 rounded-full border-2 border-white/40 border-t-white" aria-label="Starting" /> : current ? 'Continue Application' : 'Apply Now'}
           </button>
         ) : (
           <button
@@ -63,17 +72,26 @@ function PackageCard({ item, index, busy, onApply }: { item: LoanPackage; index:
 
 export default function LoanPackages() {
   const navigate = useNavigate()
-  const { start } = useApplication()
+  const titleId = useId()
+  const { data, start, switchPackage } = useApplication()
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [switchTo, setSwitchTo] = useState<LoanPackage | null>(null)
+  const draftPackage = data.id && data.status === 'draft' ? data.loanPackage : null
 
-  const apply = async (item: LoanPackage) => {
+  const run = async (item: LoanPackage, action: typeof start) => {
     setError('')
     setBusyId(item.id)
-    const problem = await start(item.id)
+    const problem = await action(item.id)
     setBusyId(null)
+    setSwitchTo(null)
     if (problem) setError(problem)
     else navigate('/apply')
+  }
+
+  const apply = (item: LoanPackage) => {
+    if (draftPackage && draftPackage !== item.id) setSwitchTo(item)
+    else run(item, start)
   }
 
   return (
@@ -86,9 +104,52 @@ export default function LoanPackages() {
       )}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {LOAN_PACKAGES.map((item, index) => (
-          <PackageCard key={item.id} item={item} index={index} busy={busyId === item.id} onApply={() => apply(item)} />
+          <PackageCard
+            key={item.id}
+            item={item}
+            index={index}
+            busy={busyId === item.id}
+            current={draftPackage === item.id}
+            onApply={() => apply(item)}
+          />
         ))}
       </div>
+
+      <Modal open={switchTo !== null} onClose={() => !busyId && setSwitchTo(null)} labelledBy={titleId}>
+        {switchTo && (
+          <div className="flex flex-col gap-5 p-6 sm:p-8">
+            <h2 id={titleId} className="font-poppins text-[22px] leading-[30px] font-semibold text-ink">
+              Switch to {switchTo.shortName}?
+            </h2>
+            <div className="flex flex-col gap-3 font-inter text-[15px] leading-[23px] text-app-muted">
+              <p>
+                You already started a <span className="font-bold text-app-ink">{getLoanPackage(draftPackage).shortName}</span> application
+                ({data.reference}). We can change it to a {switchTo.shortName} application instead.
+              </p>
+              <p>
+                <span className="font-bold text-app-ink">We'll keep:</span> your personal details, loan amount, purpose and tenor, Valid ID
+                and face check.
+              </p>
+              <p>
+                <span className="font-bold text-app-ink">You'll fill in again:</span> the details and documents that only apply to{' '}
+                {switchTo.shortName}. Your application will also get a new application ID.
+              </p>
+            </div>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" disabled={Boolean(busyId)} onClick={() => setSwitchTo(null)} className={LINK_BUTTON}>
+                Keep {getLoanPackage(draftPackage).shortName}
+              </button>
+              <button type="button" disabled={Boolean(busyId)} onClick={() => run(switchTo, switchPackage)} className={PRIMARY_BUTTON}>
+                {busyId ? (
+                  <span className="anim-spin size-5 rounded-full border-2 border-white/40 border-t-white" aria-label="Switching" />
+                ) : (
+                  `Switch to ${switchTo.shortName}`
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

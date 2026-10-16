@@ -5,7 +5,7 @@ import iconEdit from '@/assets/apply/icon-edit.svg'
 import iconWarning from '@/assets/apply/icon-warning.svg'
 import { LINK_BUTTON } from '@/components/apply/buttonStyles'
 import { InfoBox } from '@/components/apply/InfoBox'
-import { isBusinessProduct, productName, uploadSlotsFor } from '@/data/applicationOptions'
+import { idTypeLabel, isBusinessProduct, productName, uploadSlotsFor } from '@/data/applicationOptions'
 import { StepPage } from '@/components/apply/StepPage'
 import { useApplication } from '@/features/application/ApplicationContext'
 import { cn } from '@/lib/cn'
@@ -163,16 +163,19 @@ export default function ReviewStep() {
           title="Uploaded Documents"
           step="documents"
           delay={330}
-          items={uploadSlotsFor(data.loanPackage, data.productCode).map(({ slot, label }) => ({
-            label,
-            value: data.uploads[slot]?.name ?? '',
-          }))}
+          items={[
+            { label: 'Type of Valid ID', value: idTypeLabel(data.idType) },
+            ...uploadSlotsFor(data.loanPackage, data.productCode).map(({ slot, label }) => ({
+              label,
+              value: data.uploads[slot]?.name ?? '',
+            })),
+          ]}
         />
         <Section
           title="Face Check"
           step="face"
           delay={350}
-          items={[{ label: 'Live face check', value: data.uploads.face ? 'Completed' : '' }]}
+          items={[{ label: 'Face matched with your Valid ID', value: data.faceCheck.matched && data.uploads.face ? 'Completed' : '' }]}
         />
       </div>
 

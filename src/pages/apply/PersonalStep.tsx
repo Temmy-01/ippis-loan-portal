@@ -1,4 +1,5 @@
 import { Field, SelectInput, TextInput } from '@/components/apply/FormField'
+import { PhoneVerify } from '@/components/apply/PhoneVerify'
 import { StepCard, StepPage } from '@/components/apply/StepPage'
 import { GENDERS, NIGERIAN_STATES } from '@/data/applicationOptions'
 import { required, useStepErrors } from '@/features/application/useStepErrors'
@@ -12,7 +13,12 @@ export default function PersonalStep() {
   const { data, validate, field } = useStepErrors({
     fullName: required('Enter your full name'),
     dateOfBirth: required('Enter your date of birth'),
-    phone: (value) => (isPhone(value) ? undefined : 'Enter an 11-digit phone number, e.g. 08012345678'),
+    phone: (value, current) =>
+      !isPhone(value)
+        ? 'Enter an 11-digit phone number, e.g. 08012345678'
+        : current.verifiedPhone !== value
+          ? 'Tap Verify to confirm your phone number before you continue'
+          : undefined,
     email: (value) => (isEmail(value) ? undefined : 'Enter a valid email address'),
     state: required('Select your state of residence'),
     address: required('Enter your residential address'),
@@ -66,12 +72,8 @@ export default function PersonalStep() {
               <SelectInput id={id} aria-describedby={describedBy} invalid={invalid} placeholder="Select" options={GENDERS} value={gender.value} onValueChange={gender.onValueChange} />
             )}
           </Field>
-          <Field label="Phone number" hint="To change this, update your Contact Information in My Profile." error={phone.error}>
-            {({ id, describedBy, invalid }) => (
-              <TextInput id={id} type="tel" locked aria-describedby={describedBy} invalid={invalid} value={phone.value} onValueChange={() => {}} />
-            )}
-          </Field>
-          <Field label="Email address" hint="To change this, update your Contact Information in My Profile." error={email.error}>
+          <PhoneVerify value={phone.value} error={phone.error} onChange={phone.onValueChange} />
+          <Field label="Email address" hint="This is the email on your account." error={email.error}>
             {({ id, describedBy, invalid }) => (
               <TextInput id={id} type="email" locked aria-describedby={describedBy} invalid={invalid} value={email.value} onValueChange={() => {}} />
             )}

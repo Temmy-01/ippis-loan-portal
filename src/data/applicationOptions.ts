@@ -28,7 +28,7 @@ export type SlotConfig = { slot: DocumentSlot; label: string; accept: string; hi
 
 const SLOT_CONFIGS: Record<DocumentSlot, SlotConfig> = {
   workId: { slot: 'workId', label: 'Work ID Card', accept: 'image/*,application/pdf', hint: 'Image or PDF' },
-  meansOfId: { slot: 'meansOfId', label: 'Means of ID (NIN slip or international passport)', accept: 'image/*,application/pdf', hint: 'Image or PDF' },
+  meansOfId: { slot: 'meansOfId', label: "Valid ID (NIN, driver's licence, voter's card or passport)", accept: 'image/*', hint: 'Clear photo of the ID, showing all four edges' },
   passport: { slot: 'passport', label: 'Passport Photograph', accept: 'image/*', hint: 'Image only' },
   cac: { slot: 'cac', label: 'CAC Certificate', accept: 'image/*,application/pdf', hint: 'Image or PDF' },
 }
@@ -47,9 +47,19 @@ export const REPAYMENT_SOURCES = ['Salary', 'Business income', 'Other income']
 
 export const REGULATORY_BODIES = ['CAC', 'SCUML', 'CBN', 'NAFDAC', 'SON', 'Other']
 
+// The Valid ID is matched with the customer's face by Prembly, so it must be a photo.
+export const ID_TYPES = [
+  { value: 'nin', label: 'NIN slip / National ID card' },
+  { value: 'driversLicence', label: "Driver's licence" },
+  { value: 'votersCard', label: "Voter's card" },
+  { value: 'passport', label: 'International passport' },
+] as const
+
+export const idTypeLabel = (value: string) => ID_TYPES.find((type) => type.value === value)?.label ?? ''
+
 export const uploadSlotsFor = (loanPackage: string | null, productCode: string): SlotConfig[] => {
-  if (loanPackage !== 'private') return [SLOT_CONFIGS.workId, SLOT_CONFIGS.passport]
-  const slots = [SLOT_CONFIGS.meansOfId, SLOT_CONFIGS.passport]
+  if (loanPackage !== 'private') return [SLOT_CONFIGS.workId, SLOT_CONFIGS.meansOfId]
+  const slots = [SLOT_CONFIGS.meansOfId]
   if (isBusinessProduct(productCode)) slots.push(SLOT_CONFIGS.cac)
   return slots
 }

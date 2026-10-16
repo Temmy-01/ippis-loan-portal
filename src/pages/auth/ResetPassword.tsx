@@ -15,7 +15,7 @@ type Errors = Partial<Record<'code' | 'password' | 'confirm' | 'form', string>>
 
 export default function ResetPassword() {
   const navigate = useNavigate()
-  const email = (useLocation().state as { email?: string } | null)?.email
+  const login = (useLocation().state as { login?: string } | null)?.login
   const timer = useCodeTimer()
   const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
@@ -24,7 +24,7 @@ export default function ResetPassword() {
   const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  if (!email) return <Navigate to="/forgot-password" replace />
+  if (!login) return <Navigate to="/forgot-password" replace />
 
   const clear = (key: keyof Errors) => setErrors((prev) => ({ ...prev, [key]: undefined, form: undefined }))
 
@@ -33,7 +33,7 @@ export default function ResetPassword() {
     setCode('')
     setErrors({})
     timer.restart()
-    const result = await api('/portal/auth/forgot-password', { body: { email } })
+    const result = await api('/portal/auth/forgot-password', { body: { login } })
     if (result.ok) setNotice('We have sent you a new code.')
     else setErrors({ form: result.message })
   }
@@ -48,7 +48,7 @@ export default function ResetPassword() {
     if (Object.keys(found).length) return
 
     setSubmitting(true)
-    const result = await api('/portal/auth/reset-password', { body: { email, code, newPassword: password } })
+    const result = await api('/portal/auth/reset-password', { body: { login, code, newPassword: password } })
     setSubmitting(false)
 
     if (result.ok) {

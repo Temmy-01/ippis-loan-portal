@@ -10,6 +10,10 @@ export type UploadSlot = 'workId' | 'passport' | 'meansOfId' | 'cac' | 'face'
 
 export type KycState = { verified: boolean; ninStatus: 'matched' | 'mismatch' | 'unavailable' | null; checksLeft: number }
 
+export const MAX_FACE_CHECKS = 3
+
+export type FaceCheck = { matched: boolean; confidence: number | null; attemptsLeft: number }
+
 export type BankLink = { provider: string; bankName: string; accountName: string; accountNumber: string; linkedAt: string }
 
 export const FORM_FIELDS = [
@@ -39,6 +43,7 @@ export const FORM_FIELDS = [
   'regulatoryBody',
   'bvn',
   'nin',
+  'idType',
 ] as const
 
 export type FormField = (typeof FORM_FIELDS)[number]
@@ -51,6 +56,8 @@ export type ApplicationData = Record<FormField, string> & {
   loanPackage: LoanPackageId | null
   kyc: KycState | null
   bank: BankLink | null
+  verifiedPhone: string | null
+  faceCheck: FaceCheck
   uploads: Partial<Record<UploadSlot, UploadedDocument>>
   consent: boolean
   startedAt: string | null
@@ -85,7 +92,10 @@ export const EMPTY_APPLICATION: ApplicationData = {
   regulatoryBody: '',
   bvn: '',
   nin: '',
+  idType: '',
   kyc: null,
+  verifiedPhone: null,
+  faceCheck: { matched: false, confidence: null, attemptsLeft: MAX_FACE_CHECKS },
   bank: null,
   id: null,
   reference: null,
@@ -111,12 +121,16 @@ type ApplicationContextValue = {
   saveStatus: SaveStatus
   update: (patch: Partial<Record<FormField, string>> & { consent?: boolean }) => void
   start: (loanPackage: LoanPackageId) => Promise<string | null>
+  switchPackage: (loanPackage: LoanPackageId) => Promise<string | null>
   uploadDocument: (slot: UploadSlot, file: File) => Promise<string | null>
   removeDocument: (slot: UploadSlot) => Promise<string | null>
   flush: () => Promise<boolean>
   submit: () => Promise<SubmitResult>
   verifyBvn: (bvn: string, nin: string) => Promise<ActionResult>
   linkBank: (options?: { mismatch?: boolean }) => Promise<ActionResult>
+  sendPhoneCode: (phone: string) => Promise<ActionResult>
+  confirmPhoneCode: (code: string) => Promise<ActionResult>
+  checkFace: (photo: File) => Promise<ActionResult>
 }
 
 export const ApplicationContext = createContext<ApplicationContextValue | null>(null)

@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import type { LoanPackageId } from '@/data/loanPackages'
-import { getSession, useSession } from '@/features/auth/session'
+import { type Customer, getSession, updateCustomer, useSession } from '@/features/auth/session'
 import { api, API_BASE_URL } from '@/lib/api'
+import { compressImage } from '@/lib/compressImage'
 
 import {
   ApplicationContext,
   EMPTY_APPLICATION,
   FORM_FIELDS,
+  MAX_FACE_CHECKS,
   type ActionResult,
   type ApplicationData,
   type BankLink,
+  type FaceCheck,
   type KycState,
   type FormField,
   type SaveStatus,
@@ -25,8 +28,13 @@ type ServerApplication = {
   loanPackage: LoanPackageId
   status: ApplicationStatus
   summary: StatusSummary | null
-  data: Partial<Record<FormField, string>> & { kyc?: KycState | null; bank?: BankLink | null }
+  data: Partial<Record<FormField, string>> & {
+    kyc?: KycState | null
+    bank?: BankLink | null
+    faceCheck?: { attempts?: number; matched?: boolean; confidence?: number } | null
+  }
   consent: boolean
+  verifiedPhone: string | null
   documents: Array<{ slot: UploadSlot; fileName: string; size: number }>
   startedAt: string
   updatedAt: string
@@ -34,6 +42,19 @@ type ServerApplication = {
 }
 
 const SAVE_DELAY_MS = 700
+
+// The server drops the face check whenever the Valid ID or its type changes.
+const withoutFace = (prev: ApplicationData): ApplicationData => {
+  const uploads = { ...prev.uploads }
+  delete uploads.face
+  return { ...prev, uploads, faceCheck: { ...prev.faceCheck, matched: false, confidence: null } }
+}
+
+const faceCheckOf = (check: ServerApplication['data']['faceCheck']): FaceCheck => ({
+  matched: Boolean(check?.matched),
+  confidence: check?.confidence ?? null,
+  attemptsLeft: Math.max(0, MAX_FACE_CHECKS - (check?.attempts ?? 0)),
+})
 
 const fromServer = (app: ServerApplication): ApplicationData => ({
   ...EMPTY_APPLICATION,
@@ -45,6 +66,8 @@ const fromServer = (app: ServerApplication): ApplicationData => ({
   loanPackage: app.loanPackage,
   kyc: app.data?.kyc ?? null,
   bank: app.data?.bank ?? null,
+  verifiedPhone: app.verifiedPhone ?? null,
+  faceCheck: faceCheckOf(app.data?.faceCheck),
   consent: app.consent,
   uploads: Object.fromEntries(app.documents.map((doc) => [doc.slot, { name: doc.fileName, size: doc.size }])),
   startedAt: app.startedAt,
@@ -141,7 +164,10 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
     (patch: Partial<Record<FormField, string>> & { consent?: boolean }) => {
       dirty.current = true
       setSaveStatus('saving')
-      setData((prev) => ({ ...prev, ...patch }))
+      setData((prev) => {
+        const next = { ...prev, ...patch }
+        return patch.idType !== undefined && patch.idType !== prev.idType ? withoutFace(next) : next
+      })
       clearTimeout(timer.current)
       timer.current = setTimeout(save, SAVE_DELAY_MS)
     },
@@ -155,6 +181,18 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
     return null
   }, [])
 
+  const switchPackage = useCallback(async (loanPackage: LoanPackageId) => {
+    const id = latest.current.id
+    if (!id) return 'Please start your application first.'
+    if (!(await flush())) return "We couldn't save your latest changes. Please try again."
+    const result = await api<ServerApplication>(`/portal/applications/${id}/package`, { body: { loanPackage }, auth: true })
+    if (!result.ok || !result.payload) return result.message
+    clearTimeout(timer.current)
+    dirty.current = false
+    setData(fromServer(result.payload))
+    return null
+  }, [flush])
+
   const uploadDocument = useCallback(async (slot: UploadSlot, file: File) => {
     const id = latest.current.id
     const token = getSession()?.token
@@ -162,7 +200,7 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
 
     const form = new FormData()
     form.append('slot', slot)
-    form.append('file', file)
+    form.append('file', await compressImage(file))
     try {
       const response = await fetch(`${API_BASE_URL}/portal/applications/${id}/documents`, {
         method: 'POST',
@@ -171,10 +209,10 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
       })
       const json = await response.json().catch(() => null)
       if (!response.ok || json?.status !== true) return json?.message ?? 'Upload failed. Please try again.'
-      setData((prev) => ({
-        ...prev,
-        uploads: { ...prev.uploads, [slot]: { name: json.payload.fileName, size: json.payload.size } },
-      }))
+      setData((prev) => {
+        const next = { ...prev, uploads: { ...prev.uploads, [slot]: { name: json.payload.fileName, size: json.payload.size } } }
+        return slot === 'meansOfId' ? withoutFace(next) : next
+      })
       return null
     } catch {
       return "We couldn't reach the server. Check your connection and try again."
@@ -189,7 +227,7 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
     setData((prev) => {
       const uploads = { ...prev.uploads }
       delete uploads[slot]
-      return { ...prev, uploads }
+      return slot === 'meansOfId' || slot === 'face' ? withoutFace({ ...prev, uploads }) : { ...prev, uploads }
     })
     return null
   }, [])
@@ -231,9 +269,73 @@ function ServerApplicationProvider({ owner, children }: { owner: string | null; 
     [runAction],
   )
 
+  const reload = useCallback(async () => {
+    const id = latest.current.id
+    if (!id) return
+    const fresh = await api<ServerApplication>(`/portal/applications/${id}`, { auth: true })
+    if (fresh.ok && fresh.payload) setData(fromServer(fresh.payload))
+  }, [])
+
+  const sendPhoneCode = useCallback(async (phone: string): Promise<ActionResult> => {
+    const result = await api('/portal/auth/phone', { body: { phone }, auth: true })
+    return { ok: result.ok, message: result.message }
+  }, [])
+
+  const confirmPhoneCode = useCallback(async (code: string): Promise<ActionResult> => {
+    const result = await api<Customer & { phoneNumber: string }>('/portal/auth/phone/verify', { body: { code }, auth: true })
+    if (!result.ok || !result.payload) return { ok: false, message: result.message }
+    const { phoneNumber, ...customer } = result.payload
+    updateCustomer(customer)
+    setData((prev) => ({ ...prev, phone: phoneNumber, verifiedPhone: phoneNumber }))
+    return { ok: true, message: result.message }
+  }, [])
+
+  const checkFace = useCallback(
+    async (photo: File): Promise<ActionResult> => {
+      if (!(await flush())) return { ok: false, message: "We couldn't save your latest changes. Please try again." }
+      const id = latest.current.id
+      const token = getSession()?.token
+      if (!id || !token) return { ok: false, message: 'Please start your application first.' }
+      const form = new FormData()
+      form.append('file', photo)
+      try {
+        const response = await fetch(`${API_BASE_URL}/portal/applications/${id}/face`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        })
+        const json = await response.json().catch(() => null)
+        await reload()
+        if (!response.ok || json?.status !== true) {
+          return { ok: false, message: json?.message ?? 'The face check failed. Please try again.', field: json?.payload?.step }
+        }
+        return { ok: true, message: json.message }
+      } catch {
+        return { ok: false, message: "We couldn't reach the server. Check your connection and try again." }
+      }
+    },
+    [flush, reload],
+  )
+
   const value = useMemo(
-    () => ({ data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit, verifyBvn, linkBank }),
-    [data, loading, saveStatus, update, start, uploadDocument, removeDocument, flush, submit, verifyBvn, linkBank],
+    () => ({
+      data,
+      loading,
+      saveStatus,
+      update,
+      start,
+      switchPackage,
+      uploadDocument,
+      removeDocument,
+      flush,
+      submit,
+      verifyBvn,
+      linkBank,
+      sendPhoneCode,
+      confirmPhoneCode,
+      checkFace,
+    }),
+    [data, loading, saveStatus, update, start, switchPackage, uploadDocument, removeDocument, flush, submit, verifyBvn, linkBank, sendPhoneCode, confirmPhoneCode, checkFace],
   )
 
   return <ApplicationContext.Provider value={value}>{children}</ApplicationContext.Provider>

@@ -11,6 +11,7 @@ const STEP_DONE: Record<StepSlug, (data: ApplicationData) => boolean> = {
   personal: (data) =>
     filled(data.fullName, data.dateOfBirth, data.state, data.address) &&
     isPhone(data.phone) &&
+    data.verifiedPhone === data.phone &&
     isEmail(data.email) &&
     (!isPrivate(data) || (filled(data.nokFirstName, data.nokLastName) && isPhone(data.nokPhone))),
   employment: (data) => filled(data.employer),
@@ -22,9 +23,9 @@ const STEP_DONE: Record<StepSlug, (data: ApplicationData) => boolean> = {
       ? filled(data.repaymentSource, data.businessName, data.yearsOfExistence, data.rcNumber, data.regulatoryBody)
       : filled(data.repaymentSource, data.confirmedStaff),
   identity: (data) => Boolean(data.kyc?.verified),
-  documents: (data) => uploadSlotsFor(data.loanPackage, data.productCode).every(({ slot }) => data.uploads[slot]),
+  documents: (data) => filled(data.idType) && uploadSlotsFor(data.loanPackage, data.productCode).every(({ slot }) => data.uploads[slot]),
   bank: (data) => Boolean(data.bank),
-  face: (data) => Boolean(data.uploads.face),
+  face: (data) => data.faceCheck.matched && Boolean(data.uploads.face),
   review: (data) => Boolean(data.submittedAt),
 }
 
