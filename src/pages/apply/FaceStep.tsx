@@ -20,11 +20,14 @@ export default function FaceStep() {
   const { videoRef, cameraOn, error: cameraError, start, stop, capture } = useCamera()
   const [photo, setPhoto] = useState<{ file: File | null; url: string } | null>(null)
   const [checking, setChecking] = useState(false)
-  const [result, setResult] = useState<{ ok: boolean; message: string; fixId?: boolean } | null>(null)
+  const [result, setResult] = useState<{ ok: boolean; message: string; fixStep?: string } | null>(null)
 
   const matched = data.faceCheck.matched && Boolean(data.uploads.face)
   const attemptsLeft = data.faceCheck.attemptsLeft
+  const isPrivate = data.loanPackage === 'private'
   const hasId = Boolean(data.uploads.meansOfId && data.idType)
+  const needsIdentity = isPrivate && !data.kyc?.verified
+  const ready = hasId && !needsIdentity
 
   useEffect(() => {
     if (!matched || photo || !data.id) return
@@ -60,7 +63,7 @@ export default function FaceStep() {
     setChecking(true)
     const outcome = await checkFace(photo.file)
     setChecking(false)
-    setResult({ ok: outcome.ok, message: outcome.message, fixId: outcome.field === 'documents' })
+    setResult({ ok: outcome.ok, message: outcome.message, fixStep: outcome.field })
     if (!outcome.ok) setPhoto(null)
   }
 
@@ -137,9 +140,21 @@ export default function FaceStep() {
             </ul>
 
             <p className="rounded-[12px] bg-sky-soft px-4 py-3 font-inter text-[14px] leading-[21px] text-sky-ink">
-              We compare your photo with the photo on your {idTypeLabel(data.idType) || 'Valid ID'} to confirm it's really you. Your photo
-              is saved with your application for our loan team.
+              {isPrivate
+                ? `We check that your photo is a live photo of you, then compare it with the photo on your ${idTypeLabel(data.idType) || 'Valid ID'} and with the photo on your NIN record.`
+                : `We compare your photo with the photo on your ${idTypeLabel(data.idType) || 'Valid ID'} to confirm it's really you.`}{' '}
+              Your photo is saved with your application for our loan team.
             </p>
+
+            {needsIdentity && (
+              <p role="alert" className="rounded-[12px] bg-[#fdeced] px-4 py-3 font-inter text-[14px] leading-[21px] text-[#b4282d]">
+                Please verify your BVN and NIN on the{' '}
+                <Link to="/apply/identity" className="font-bold underline">
+                  Identity step
+                </Link>{' '}
+                first.
+              </p>
+            )}
 
             {!hasId && (
               <p role="alert" className="rounded-[12px] bg-[#fdeced] px-4 py-3 font-inter text-[14px] leading-[21px] text-[#b4282d]">
@@ -154,9 +169,9 @@ export default function FaceStep() {
             {(cameraError || (result && !result.ok)) && (
               <p role="alert" className="rounded-[12px] bg-[#fdeced] px-4 py-3 font-inter text-[14px] leading-[21px] text-[#b4282d]">
                 {cameraError || result?.message}{' '}
-                {result?.fixId && (
-                  <Link to="/apply/documents" className="font-bold underline">
-                    Go to Documents
+                {(result?.fixStep === 'documents' || result?.fixStep === 'identity') && (
+                  <Link to={`/apply/${result.fixStep}`} className="font-bold underline">
+                    {result.fixStep === 'documents' ? 'Go to Documents' : 'Go to Identity'}
                   </Link>
                 )}
               </p>
@@ -186,7 +201,7 @@ export default function FaceStep() {
                 </button>
               </div>
             ) : (
-              <button type="button" onClick={openCamera} disabled={!hasId || checking} className={cn(PRIMARY_BUTTON, 'justify-center gap-2 disabled:opacity-50')}>
+              <button type="button" onClick={openCamera} disabled={!ready || checking} className={cn(PRIMARY_BUTTON, 'justify-center gap-2 disabled:opacity-50')}>
                 <LuScanFace className="size-5" />
                 {matched ? 'Retake Face Check' : 'Start Face Check'}
               </button>

@@ -49,6 +49,7 @@ export default function IdentityStep() {
                 autoComplete="off"
                 aria-describedby={describedBy}
                 invalid={invalid}
+                locked={verified}
                 placeholder="11-digit BVN"
                 value={data.bvn}
                 onValueChange={(value) => {
@@ -66,6 +67,7 @@ export default function IdentityStep() {
                 autoComplete="off"
                 aria-describedby={describedBy}
                 invalid={invalid}
+                locked={verified}
                 placeholder="11-digit NIN"
                 value={data.nin}
                 onValueChange={(value) => {
@@ -80,16 +82,16 @@ export default function IdentityStep() {
         <div className="mt-5" aria-live="polite">
           {checking ? (
             <p className="flex items-center gap-2 font-inter text-[14px] text-app-muted">
-              <span className="anim-spin size-4 rounded-full border-2 border-lms-purple/30 border-t-lms-purple" /> Checking your BVN…
+              <span className="anim-spin size-4 rounded-full border-2 border-lms-purple/30 border-t-lms-purple" /> Checking your BVN and NIN…
             </p>
           ) : verified ? (
             <p className="flex items-center gap-2 rounded-[12px] bg-[#e8f8f0] px-4 py-3 font-inter text-[14px] font-bold text-[#17724d]">
-              <LuShieldCheck className="size-5" /> Your BVN is verified{data.kyc?.ninStatus === 'matched' ? ' and your NIN matches' : ''}.
+              <LuShieldCheck className="size-5" /> Your BVN and NIN are verified. They can no longer be changed on this application.
             </p>
           ) : (
             <p className="rounded-[12px] bg-sky-soft px-4 py-3 font-inter text-[14px] leading-[21px] text-sky-ink">
-              Press Continue to verify. Your BVN must be in the same name as your account, and your NIN must match your BVN
-              record.{data.kyc && data.kyc.checksLeft < 5 ? ` ${data.kyc.checksLeft} checks left.` : ''}
+              Press Continue to verify. Your BVN and NIN are checked with your bank and NIMC, and both must be in the same name
+              as your account. Once verified, they cannot be changed.{data.kyc && data.kyc.checksLeft < 5 ? ` ${data.kyc.checksLeft} checks left.` : ''}
             </p>
           )}
           {errors.form && (
